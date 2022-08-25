@@ -201,11 +201,11 @@ namespace Aseprite_Multiple_Export
                     for(int i = 0; i < LayerList.Length; i++)
                     {
                         finalOutputName = $"{OutputName}_{LayerList[i]}{suffix}";
-                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --sheet {finalOutputName}.png";
+                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --sheet {Scale}x/{finalOutputName}.png";
 
                         if(ExportData)
                         {
-                            command += $" --data {finalOutputName}.json";
+                            command += $" --data {Scale}x/{finalOutputName}.json";
                         }
 
                         Export(command, finalOutputName);
@@ -222,10 +222,10 @@ namespace Aseprite_Multiple_Export
                         finalOutputName = $"{OutputName}{index}{suffix}";
                     }
 
-                    command = $"-b --all-layers {fileName} --scale {Scale} --sheet-columns {columns} --sheet {finalOutputName}.png";
+                    command = $"-b --all-layers {fileName} --scale {Scale} --sheet-columns {columns} --sheet {Scale}x/{finalOutputName}.png";
                     if (ExportData)
                     {
-                        command += $" --data {finalOutputName}.json";
+                        command += $" --data {Scale}x/{finalOutputName}.json";
                     }
 
                     Export(command, finalOutputName);
