@@ -1,7 +1,9 @@
 # Aseprite-Multiple-Export
 Aseprite multiple files/layers export
+
 ![showcase](https://prnt.sc/hRnR9fZaZlzC)
- I made this program with the intention of helping [my girlfriend](https://pyxelspace.com/) who is a pixel artist in her work of exporting multiple files at once, and multiple layers as well in Aseprite.
+
+I made this program with the intention of helping [my girlfriend](https://pyxelspace.com/) who is a pixel artist in her work of exporting multiple files at once, and multiple layers as well in Aseprite.
  
  ## How Works?
  1. Select the Aseprite.exe file on your computer.
