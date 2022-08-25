@@ -233,6 +233,8 @@ namespace Aseprite_Multiple_Export
 
                 index++;
             }
+
+            MessageBox.Show("The files have been exported!", "Successfully exported", MessageBoxButtons.OK);
         }
 
         private void Export(string command, string fileName)
