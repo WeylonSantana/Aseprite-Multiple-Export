@@ -68,6 +68,7 @@
             this.btnExport = new System.Windows.Forms.Button();
             this.chkOriginalFilename = new System.Windows.Forms.CheckBox();
             this.btnSettings = new System.Windows.Forms.Button();
+            this.btnExportDebug = new System.Windows.Forms.Button();
             this.grpSuffixList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudScale)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudDefaultColumns)).BeginInit();
@@ -506,11 +507,22 @@
             this.btnSettings.UseVisualStyleBackColor = true;
             this.btnSettings.Click += new System.EventHandler(this.btnSettings_Click);
             // 
+            // btnExportDebug
+            // 
+            this.btnExportDebug.Location = new System.Drawing.Point(419, 519);
+            this.btnExportDebug.Name = "btnExportDebug";
+            this.btnExportDebug.Size = new System.Drawing.Size(140, 30);
+            this.btnExportDebug.TabIndex = 36;
+            this.btnExportDebug.Text = "Show Export Debug";
+            this.btnExportDebug.UseVisualStyleBackColor = true;
+            this.btnExportDebug.Click += new System.EventHandler(this.btnExportDebug_Click);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 561);
+            this.Controls.Add(this.btnExportDebug);
             this.Controls.Add(this.btnSettings);
             this.Controls.Add(this.chkOriginalFilename);
             this.Controls.Add(this.btnExport);
@@ -584,5 +596,6 @@
         private Button btnSettings;
         private NumericUpDown nudScale;
         private Label label2;
+        private Button btnExportDebug;
     }
 }

@@ -237,11 +237,6 @@ namespace Aseprite_Multiple_Export
 
         private void Export(string command, string fileName)
         {
-            if (!outputWindow.Visible)
-            {
-                outputWindow.Show();
-            }
-
             string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
             Process process = new Process();
             process.StartInfo.FileName = "cmd.exe";
@@ -378,6 +373,20 @@ namespace Aseprite_Multiple_Export
         private void nudScale_ValueChanged(object sender, EventArgs e)
         {
             UpdateForm();
+        }
+
+        private void btnExportDebug_Click(object sender, EventArgs e)
+        {
+            if (!outputWindow.Visible)
+            {
+                outputWindow.Show();
+                btnExportDebug.Text = "Hide Export Debug";
+            }
+            else
+            {
+                outputWindow.Hide();
+                btnExportDebug.Text = "Show Export Debug";
+            }
         }
 
         private void btnSettings_Click(object sender, EventArgs e)

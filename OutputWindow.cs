@@ -22,10 +22,5 @@ namespace Aseprite_Multiple_Export
         {
             lstFileList.Items.Add(fileName);
         }
-
-        private void btnClose_Click(object sender, EventArgs e)
-        {
-            this.Visible = false;
-        }
     }
 }

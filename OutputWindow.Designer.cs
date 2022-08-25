@@ -30,7 +30,6 @@
         {
             this.lstFileList = new System.Windows.Forms.ListBox();
             this.lblFileList = new System.Windows.Forms.Label();
-            this.btnClose = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // lstFileList
@@ -51,23 +50,12 @@
             this.lblFileList.TabIndex = 8;
             this.lblFileList.Text = "List of exported files:";
             // 
-            // btnClose
-            // 
-            this.btnClose.Location = new System.Drawing.Point(409, 270);
-            this.btnClose.Name = "btnClose";
-            this.btnClose.Size = new System.Drawing.Size(75, 23);
-            this.btnClose.TabIndex = 10;
-            this.btnClose.Text = "Ok";
-            this.btnClose.UseVisualStyleBackColor = true;
-            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
-            // 
             // OutputWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(496, 305);
+            this.ClientSize = new System.Drawing.Size(496, 265);
             this.ControlBox = false;
-            this.Controls.Add(this.btnClose);
             this.Controls.Add(this.lstFileList);
             this.Controls.Add(this.lblFileList);
             this.MaximizeBox = false;
