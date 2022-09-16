@@ -82,7 +82,7 @@
             this.txtAsepriteSearch.Enabled = false;
             this.txtAsepriteSearch.Location = new System.Drawing.Point(156, 6);
             this.txtAsepriteSearch.Name = "txtAsepriteSearch";
-            this.txtAsepriteSearch.Size = new System.Drawing.Size(510, 23);
+            this.txtAsepriteSearch.Size = new System.Drawing.Size(649, 23);
             this.txtAsepriteSearch.TabIndex = 1;
             // 
             // lblAsepriteSearch
@@ -96,7 +96,7 @@
             // 
             // btnAsepriteSearch
             // 
-            this.btnAsepriteSearch.Location = new System.Drawing.Point(672, 6);
+            this.btnAsepriteSearch.Location = new System.Drawing.Point(812, 6);
             this.btnAsepriteSearch.Name = "btnAsepriteSearch";
             this.btnAsepriteSearch.Size = new System.Drawing.Size(100, 23);
             this.btnAsepriteSearch.TabIndex = 2;
@@ -106,7 +106,7 @@
             // 
             // btnFolderSearch
             // 
-            this.btnFolderSearch.Location = new System.Drawing.Point(672, 35);
+            this.btnFolderSearch.Location = new System.Drawing.Point(812, 35);
             this.btnFolderSearch.Name = "btnFolderSearch";
             this.btnFolderSearch.Size = new System.Drawing.Size(100, 23);
             this.btnFolderSearch.TabIndex = 5;
@@ -125,11 +125,11 @@
             // 
             // txtFolderSearch
             // 
-            this.txtFolderSearch.Enabled = false;
             this.txtFolderSearch.Location = new System.Drawing.Point(231, 35);
             this.txtFolderSearch.Name = "txtFolderSearch";
-            this.txtFolderSearch.Size = new System.Drawing.Size(435, 23);
+            this.txtFolderSearch.Size = new System.Drawing.Size(574, 23);
             this.txtFolderSearch.TabIndex = 4;
+            this.txtFolderSearch.TextChanged += new System.EventHandler(this.txtFolderSearch_TextChanged);
             // 
             // lblFileList
             // 
@@ -146,7 +146,7 @@
             this.lstFileList.ItemHeight = 15;
             this.lstFileList.Location = new System.Drawing.Point(12, 79);
             this.lstFileList.Name = "lstFileList";
-            this.lstFileList.Size = new System.Drawing.Size(760, 229);
+            this.lstFileList.Size = new System.Drawing.Size(900, 229);
             this.lstFileList.TabIndex = 7;
             // 
             // lblLayerList
@@ -162,7 +162,7 @@
             // 
             this.txtLayerList.Location = new System.Drawing.Point(322, 314);
             this.txtLayerList.Name = "txtLayerList";
-            this.txtLayerList.Size = new System.Drawing.Size(450, 23);
+            this.txtLayerList.Size = new System.Drawing.Size(590, 23);
             this.txtLayerList.TabIndex = 9;
             this.txtLayerList.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
@@ -204,7 +204,7 @@
             this.grpSuffixList.Controls.Add(this.lblSuffixCondition1);
             this.grpSuffixList.Location = new System.Drawing.Point(12, 365);
             this.grpSuffixList.Name = "grpSuffixList";
-            this.grpSuffixList.Size = new System.Drawing.Size(760, 143);
+            this.grpSuffixList.Size = new System.Drawing.Size(900, 143);
             this.grpSuffixList.TabIndex = 11;
             this.grpSuffixList.TabStop = false;
             this.grpSuffixList.Text = "Output Filename Control";
@@ -478,7 +478,7 @@
             // 
             // btnExport
             // 
-            this.btnExport.Location = new System.Drawing.Point(672, 519);
+            this.btnExport.Location = new System.Drawing.Point(812, 519);
             this.btnExport.Name = "btnExport";
             this.btnExport.Size = new System.Drawing.Size(100, 30);
             this.btnExport.TabIndex = 33;
@@ -499,7 +499,7 @@
             // 
             // btnSettings
             // 
-            this.btnSettings.Location = new System.Drawing.Point(565, 519);
+            this.btnSettings.Location = new System.Drawing.Point(705, 519);
             this.btnSettings.Name = "btnSettings";
             this.btnSettings.Size = new System.Drawing.Size(100, 30);
             this.btnSettings.TabIndex = 35;
@@ -509,7 +509,7 @@
             // 
             // btnExportDebug
             // 
-            this.btnExportDebug.Location = new System.Drawing.Point(419, 519);
+            this.btnExportDebug.Location = new System.Drawing.Point(559, 519);
             this.btnExportDebug.Name = "btnExportDebug";
             this.btnExportDebug.Size = new System.Drawing.Size(140, 30);
             this.btnExportDebug.TabIndex = 36;
@@ -521,7 +521,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 561);
+            this.ClientSize = new System.Drawing.Size(924, 561);
             this.Controls.Add(this.btnExportDebug);
             this.Controls.Add(this.btnSettings);
             this.Controls.Add(this.chkOriginalFilename);

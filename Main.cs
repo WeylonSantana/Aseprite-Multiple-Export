@@ -200,7 +200,7 @@ namespace Aseprite_Multiple_Export
                 {
                     for(int i = 0; i < LayerList.Length; i++)
                     {
-                        finalOutputName = $"{OutputName}_{LayerList[i]}{suffix}";
+                        finalOutputName = $"{OutputName}-{LayerList[i]}{suffix}";
                         command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --sheet {Scale}x/{finalOutputName}.png";
 
                         if(ExportData)
@@ -297,6 +297,37 @@ namespace Aseprite_Multiple_Export
             {
                 txtFolderSearch.Text = openFolder.SelectedPath;
                 UpdateForm();
+            }
+        }
+        private void txtFolderSearch_TextChanged(object sender, EventArgs e)
+        {
+            FolderPath = txtFolderSearch.Text;
+            if (!string.IsNullOrEmpty(FolderPath))
+            {
+                if (Directory.Exists(FolderPath))
+                {
+                    string[] files = Directory.GetFiles(FolderPath, "*.aseprite");
+                    lstFileList.Items.Clear();
+                    if (files.Length > 0)
+                    {
+                        foreach (var file in files)
+                        {
+                            var filePath = file.Split("\\");
+                            string fileName = "";
+                            if (filePath.Length > 0)
+                            {
+                                fileName = filePath[filePath.Length - 1];
+                            }
+
+                            lstFileList.Items.Add(fileName);
+                        }
+                    }
+                    FileList = files;
+                }
+                else
+                {
+                    lstFileList.Items.Clear();
+                }
             }
         }
 
