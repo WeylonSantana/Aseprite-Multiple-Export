@@ -78,6 +78,10 @@ namespace Aseprite_Multiple_Export
             {
                 LayerList = txtLayerList.Text.Split(",");
             }
+            else
+            {
+                LayerList = new string[0];
+            }
 
             if (KeepOriginalFilename)
             {
