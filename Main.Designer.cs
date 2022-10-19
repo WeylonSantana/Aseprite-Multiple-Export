@@ -69,6 +69,7 @@
             this.chkOriginalFilename = new System.Windows.Forms.CheckBox();
             this.btnSettings = new System.Windows.Forms.Button();
             this.btnExportDebug = new System.Windows.Forms.Button();
+            this.chkEveryLayer = new System.Windows.Forms.CheckBox();
             this.grpSuffixList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudScale)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudDefaultColumns)).BeginInit();
@@ -164,7 +165,7 @@
             this.txtLayerList.Name = "txtLayerList";
             this.txtLayerList.Size = new System.Drawing.Size(590, 23);
             this.txtLayerList.TabIndex = 9;
-            this.txtLayerList.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            this.txtLayerList.TextChanged += new System.EventHandler(this.txtLayerList_TextChanged);
             // 
             // txtWarning
             // 
@@ -517,11 +518,23 @@
             this.btnExportDebug.UseVisualStyleBackColor = true;
             this.btnExportDebug.Click += new System.EventHandler(this.btnExportDebug_Click);
             // 
+            // chkEveryLayer
+            // 
+            this.chkEveryLayer.AutoSize = true;
+            this.chkEveryLayer.Location = new System.Drawing.Point(329, 526);
+            this.chkEveryLayer.Name = "chkEveryLayer";
+            this.chkEveryLayer.Size = new System.Drawing.Size(87, 19);
+            this.chkEveryLayer.TabIndex = 37;
+            this.chkEveryLayer.Text = "Every layer?";
+            this.chkEveryLayer.UseVisualStyleBackColor = true;
+            this.chkEveryLayer.CheckedChanged += new System.EventHandler(this.chkEveryLayer_CheckedChanged);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(924, 561);
+            this.Controls.Add(this.chkEveryLayer);
             this.Controls.Add(this.btnExportDebug);
             this.Controls.Add(this.btnSettings);
             this.Controls.Add(this.chkOriginalFilename);
@@ -597,5 +610,6 @@
         private NumericUpDown nudScale;
         private Label label2;
         private Button btnExportDebug;
+        private CheckBox chkEveryLayer;
     }
 }
