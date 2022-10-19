@@ -226,5 +226,17 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["Scale"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool EveryLayer {
+            get {
+                return ((bool)(this["EveryLayer"]));
+            }
+            set {
+                this["EveryLayer"] = value;
+            }
+        }
     }
 }

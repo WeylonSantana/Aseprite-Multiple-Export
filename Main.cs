@@ -23,6 +23,7 @@ namespace Aseprite_Multiple_Export
         private int DefaultColums = 4;
         private bool ExportData = true;
         private bool KeepOriginalFilename = false;
+        private bool EveryLayer = false;
         private OutputWindow outputWindow;
         private int Scale;
 
@@ -50,6 +51,7 @@ namespace Aseprite_Multiple_Export
             nudColumns3.Value = Settings.Default.ConditionColumn3;
             chkExportData.Checked = Settings.Default.ExportJson;
             chkOriginalFilename.Checked = Settings.Default.KeepOriginalName;
+            chkEveryLayer.Checked = Settings.Default.EveryLayer;
             nudScale.Value = Settings.Default.Scale;
 
             UpdateForm();
@@ -72,11 +74,20 @@ namespace Aseprite_Multiple_Export
             DefaultColums = (int) nudDefaultColumns.Value;
             ExportData = chkExportData.Checked;
             KeepOriginalFilename = chkOriginalFilename.Checked;
+            EveryLayer = chkEveryLayer.Checked;
+            txtLayerList.Enabled = EveryLayer ? false : true;
             Scale = (int) nudScale.Value;
 
-            if(!string.IsNullOrEmpty(txtLayerList.Text))
+
+            if (!string.IsNullOrEmpty(txtLayerList.Text))
             {
                 LayerList = txtLayerList.Text.Split(",");
+                chkEveryLayer.Enabled = false;
+            }
+            else
+            {
+                LayerList = new string[0];
+                chkEveryLayer.Enabled = true;
             }
             else
             {
@@ -204,8 +215,8 @@ namespace Aseprite_Multiple_Export
                 {
                     for(int i = 0; i < LayerList.Length; i++)
                     {
-                        finalOutputName = $"{OutputName}_{LayerList[i]}{suffix}";
-                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --sheet {Scale}x/{finalOutputName}.png";
+                        finalOutputName = $"{OutputName}-{LayerList[i]}{suffix}";
+                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --ignore-empty --sheet {Scale}x/{finalOutputName}.png";
 
                         if(ExportData)
                         {
@@ -226,7 +237,16 @@ namespace Aseprite_Multiple_Export
                         finalOutputName = $"{OutputName}{index}{suffix}";
                     }
 
-                    command = $"-b --all-layers {fileName} --scale {Scale} --sheet-columns {columns} --sheet {Scale}x/{finalOutputName}.png";
+                    if(EveryLayer)
+                    {
+                        command = $"-b --all-layers --split-layers {fileName} --scale {Scale} --save-as {Scale}x/{finalOutputName}";
+                        command += "-{layer}.png";
+                    }
+                    else
+                    {
+                        command = $"-b --all-layers {fileName} --scale {Scale} --sheet-columns {columns} --ignore-empty --sheet {Scale}x/{finalOutputName}.png";
+                    }
+
                     if (ExportData)
                     {
                         command += $" --data {Scale}x/{finalOutputName}.json";
@@ -251,6 +271,7 @@ namespace Aseprite_Multiple_Export
             process.StartInfo.Arguments = finalCommand;
             process.Start();
             process.WaitForExit();
+
             outputWindow.UpdateData(fileName);
         }
 
@@ -304,10 +325,8 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
+        private void txtLayerList_TextChanged(object sender, EventArgs e)
         {
-            char[] charsToTrim = { '*', ' ', '\'', ';', '.' };
-            txtLayerList.Text = Regex.Replace(txtLayerList.Text, @"[^0-9a-zA-Z,]+", "");
             UpdateForm();
         }
 
@@ -375,6 +394,10 @@ namespace Aseprite_Multiple_Export
         {
             UpdateForm();
         }
+        private void chkEveryLayer_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateForm();
+        }
 
         private void nudScale_ValueChanged(object sender, EventArgs e)
         {
@@ -413,9 +436,11 @@ namespace Aseprite_Multiple_Export
             Settings.Default.ConditionColumn3 = (int) nudColumns3.Value;
             Settings.Default.ExportJson = chkExportData.Checked;
             Settings.Default.KeepOriginalName = chkOriginalFilename.Checked;
+            Settings.Default.EveryLayer = chkEveryLayer.Checked;
             Settings.Default.Save();
             MessageBox.Show("Settings Saved", "Save Settings", MessageBoxButtons.OK);
         }
         #endregion
+
     }
 }
