@@ -74,120 +74,12 @@ namespace Aseprite_Multiple_Export.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("4")]
-        public int Columns {
+        public int OutputColumns {
             get {
-                return ((int)(this["Columns"]));
+                return ((int)(this["OutputColumns"]));
             }
             set {
-                this["Columns"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Condition1 {
-            get {
-                return ((string)(this["Condition1"]));
-            }
-            set {
-                this["Condition1"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Condition2 {
-            get {
-                return ((string)(this["Condition2"]));
-            }
-            set {
-                this["Condition2"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Condition3 {
-            get {
-                return ((string)(this["Condition3"]));
-            }
-            set {
-                this["Condition3"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Suffix1 {
-            get {
-                return ((string)(this["Suffix1"]));
-            }
-            set {
-                this["Suffix1"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Suffix2 {
-            get {
-                return ((string)(this["Suffix2"]));
-            }
-            set {
-                this["Suffix2"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Suffix3 {
-            get {
-                return ((string)(this["Suffix3"]));
-            }
-            set {
-                this["Suffix3"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int ConditionColumn1 {
-            get {
-                return ((int)(this["ConditionColumn1"]));
-            }
-            set {
-                this["ConditionColumn1"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int ConditionColumn2 {
-            get {
-                return ((int)(this["ConditionColumn2"]));
-            }
-            set {
-                this["ConditionColumn2"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int ConditionColumn3 {
-            get {
-                return ((int)(this["ConditionColumn3"]));
-            }
-            set {
-                this["ConditionColumn3"] = value;
+                this["OutputColumns"] = value;
             }
         }
         

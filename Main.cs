@@ -9,17 +9,8 @@ namespace Aseprite_Multiple_Export
         private string FolderPath;
         private string[] FileList;
         private string[] LayerList;
-        private string SuffixCondition1;
-        private string SuffixCondition2;
-        private string SuffixCondition3;
-        private string Suffix1;
-        private string Suffix2;
-        private string Suffix3;
-        private int Columns1;
-        private int Columns2;
-        private int Columns3;
         private string OutputName;
-        private int DefaultColums = 4;
+        private int OutputColums = 4;
         private bool ExportData = true;
         private bool KeepOriginalFilename = false;
         private bool EveryLayer = false;
@@ -38,16 +29,7 @@ namespace Aseprite_Multiple_Export
             txtFolderSearch.Text = Settings.Default.FolderPath;
             txtLayerList.Text = Settings.Default.LayerList;
             txtDefaultOutputName.Text = Settings.Default.OutputName;
-            txtCondition1.Text = Settings.Default.Condition1;
-            txtCondition2.Text = Settings.Default.Condition2;
-            txtCondition3.Text = Settings.Default.Condition3;
-            txtSuffix1.Text = Settings.Default.Suffix1;
-            txtSuffix2.Text = Settings.Default.Suffix2;
-            txtSuffix3.Text = Settings.Default.Suffix3;
-            nudDefaultColumns.Value = Settings.Default.Columns;
-            nudColumns1.Value = Settings.Default.ConditionColumn1;
-            nudColumns2.Value = Settings.Default.ConditionColumn2;
-            nudColumns3.Value = Settings.Default.ConditionColumn3;
+            nudDefaultColumns.Value = Settings.Default.OutputColumns;
             chkExportData.Checked = Settings.Default.ExportJson;
             chkOriginalFilename.Checked = Settings.Default.KeepOriginalName;
             chkEveryLayer.Checked = Settings.Default.EveryLayer;
@@ -63,16 +45,7 @@ namespace Aseprite_Multiple_Export
             Aseprite = txtAsepriteSearch.Text;
             FolderPath = txtFolderSearch.Text;
             OutputName = txtDefaultOutputName.Text;
-            SuffixCondition1 = txtCondition1.Text;
-            SuffixCondition2 = txtCondition2.Text;
-            SuffixCondition3 = txtCondition3.Text;
-            Suffix1 = txtSuffix1.Text;
-            Suffix2 = txtSuffix2.Text;
-            Suffix3 = txtSuffix3.Text;
-            Columns1 = (int) nudColumns1.Value;
-            Columns2 = (int) nudColumns2.Value;
-            Columns3 = (int) nudColumns3.Value;
-            DefaultColums = (int) nudDefaultColumns.Value;
+            OutputColums = (int) nudDefaultColumns.Value;
             ExportData = chkExportData.Checked;
             KeepOriginalFilename = chkOriginalFilename.Checked;
             EveryLayer = chkEveryLayer.Checked;
@@ -182,8 +155,6 @@ namespace Aseprite_Multiple_Export
             int index = 0;
             foreach (var file in FileList)
             {
-                string suffix = "";
-                int columns = DefaultColums;
                 string command = "";
 
                 string[]? filePath = file.Split("\\");
@@ -191,34 +162,6 @@ namespace Aseprite_Multiple_Export
                 if (filePath.Length > 0)
                 {
                     fileName = filePath[filePath.Length - 1];
-                }
-
-                //Lets check conditions
-                if (!string.IsNullOrEmpty(SuffixCondition1) &&
-                    file.Contains(SuffixCondition1) &&
-                    !string.IsNullOrEmpty(Suffix1) &&
-                    Columns1 > 0)
-                {
-                    suffix = Suffix1;
-                    columns = Columns1;
-                }
-
-                if (!string.IsNullOrEmpty(SuffixCondition2) &&
-                    file.Contains(SuffixCondition2) &&
-                    !string.IsNullOrEmpty(Suffix2) &&
-                    Columns2 > 0)
-                {
-                    suffix = Suffix2;
-                    columns = Columns2;
-                }
-
-                if (!string.IsNullOrEmpty(SuffixCondition3) &&
-                    file.Contains(SuffixCondition3) &&
-                    !string.IsNullOrEmpty(Suffix3) &&
-                    Columns3 > 0)
-                {
-                    suffix = Suffix3;
-                    columns = Columns3;
                 }
 
                 if (KeepOriginalFilename)
@@ -231,8 +174,8 @@ namespace Aseprite_Multiple_Export
                 {
                     for (int i = 0; i < LayerList.Length; i++)
                     {
-                        finalOutputName = $"{OutputName}-{LayerList[i]}{suffix}";
-                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {SheetScale} --sheet-columns {columns} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
+                        finalOutputName = $"{OutputName}-{LayerList[i]}";
+                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
 
                         if (ExportData)
                         {
@@ -254,13 +197,13 @@ namespace Aseprite_Multiple_Export
                 }
                 else
                 {
-                    if (index == 0 || KeepOriginalFilename || suffix.Length > 0)
+                    if (index == 0 || KeepOriginalFilename)
                     {
-                        finalOutputName = $"{OutputName}{suffix}";
+                        finalOutputName = $"{OutputName}";
                     }
                     else
                     {
-                        finalOutputName = $"{OutputName}{index}{suffix}";
+                        finalOutputName = $"{OutputName}{index}";
                     }
 
                     if (EveryLayer)
@@ -271,7 +214,7 @@ namespace Aseprite_Multiple_Export
                     }
                     else
                     {
-                        command = $"-b --all-layers {fileName} --scale {SheetScale} --sheet-columns {columns} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
+                        command = $"-b --all-layers {fileName} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
                     }
 
                     if (ExportData)
@@ -474,16 +417,7 @@ namespace Aseprite_Multiple_Export
             Settings.Default.FolderPath = txtFolderSearch.Text;
             Settings.Default.LayerList = txtLayerList.Text;
             Settings.Default.OutputName = txtDefaultOutputName.Text;
-            Settings.Default.Columns = (int) nudDefaultColumns.Value;
-            Settings.Default.Condition1 = txtCondition1.Text;
-            Settings.Default.Condition2 = txtCondition2.Text;
-            Settings.Default.Condition3 = txtCondition3.Text;
-            Settings.Default.Suffix1 = txtSuffix1.Text;
-            Settings.Default.Suffix2 = txtSuffix2.Text;
-            Settings.Default.Suffix3 = txtSuffix3.Text;
-            Settings.Default.ConditionColumn1 = (int) nudColumns1.Value;
-            Settings.Default.ConditionColumn2 = (int) nudColumns2.Value;
-            Settings.Default.ConditionColumn3 = (int) nudColumns3.Value;
+            Settings.Default.OutputColumns = (int) nudDefaultColumns.Value;
             Settings.Default.ExportJson = chkExportData.Checked;
             Settings.Default.KeepOriginalName = chkOriginalFilename.Checked;
             Settings.Default.EveryLayer = chkEveryLayer.Checked;

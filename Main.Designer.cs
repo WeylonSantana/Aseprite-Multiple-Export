@@ -44,26 +44,8 @@
             label2 = new Label();
             nudDefaultColumns = new NumericUpDown();
             label1 = new Label();
-            nudColumns3 = new NumericUpDown();
-            nudColumns2 = new NumericUpDown();
-            nudColumns1 = new NumericUpDown();
-            lblSuffixCondition9 = new Label();
-            lblSuffixCondition6 = new Label();
-            lblSuffixCondition3 = new Label();
             txtDefaultOutputName = new TextBox();
             lblDefaultOutputName = new Label();
-            txtSuffix3 = new TextBox();
-            lblSuffixCondition8 = new Label();
-            txtCondition3 = new TextBox();
-            lblSuffixCondition7 = new Label();
-            txtSuffix2 = new TextBox();
-            lblSuffixCondition5 = new Label();
-            txtCondition2 = new TextBox();
-            lblSuffixCondition4 = new Label();
-            txtSuffix1 = new TextBox();
-            lblSuffixCondition2 = new Label();
-            txtCondition1 = new TextBox();
-            lblSuffixCondition1 = new Label();
             chkExportData = new CheckBox();
             btnExport = new Button();
             chkOriginalFilename = new CheckBox();
@@ -77,9 +59,6 @@
             grpSuffixList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             ((System.ComponentModel.ISupportInitialize) nudDefaultColumns).BeginInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns3).BeginInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns1).BeginInit();
             grpOptions.SuspendLayout();
             grpExportedItems.SuspendLayout();
             SuspendLayout();
@@ -188,29 +167,11 @@
             grpSuffixList.Controls.Add(label2);
             grpSuffixList.Controls.Add(nudDefaultColumns);
             grpSuffixList.Controls.Add(label1);
-            grpSuffixList.Controls.Add(nudColumns3);
-            grpSuffixList.Controls.Add(nudColumns2);
-            grpSuffixList.Controls.Add(nudColumns1);
-            grpSuffixList.Controls.Add(lblSuffixCondition9);
-            grpSuffixList.Controls.Add(lblSuffixCondition6);
-            grpSuffixList.Controls.Add(lblSuffixCondition3);
             grpSuffixList.Controls.Add(txtDefaultOutputName);
             grpSuffixList.Controls.Add(lblDefaultOutputName);
-            grpSuffixList.Controls.Add(txtSuffix3);
-            grpSuffixList.Controls.Add(lblSuffixCondition8);
-            grpSuffixList.Controls.Add(txtCondition3);
-            grpSuffixList.Controls.Add(lblSuffixCondition7);
-            grpSuffixList.Controls.Add(txtSuffix2);
-            grpSuffixList.Controls.Add(lblSuffixCondition5);
-            grpSuffixList.Controls.Add(txtCondition2);
-            grpSuffixList.Controls.Add(lblSuffixCondition4);
-            grpSuffixList.Controls.Add(txtSuffix1);
-            grpSuffixList.Controls.Add(lblSuffixCondition2);
-            grpSuffixList.Controls.Add(txtCondition1);
-            grpSuffixList.Controls.Add(lblSuffixCondition1);
             grpSuffixList.Location = new Point(12, 365);
             grpSuffixList.Name = "grpSuffixList";
-            grpSuffixList.Size = new Size(760, 143);
+            grpSuffixList.Size = new Size(760, 54);
             grpSuffixList.TabIndex = 11;
             grpSuffixList.TabStop = false;
             grpSuffixList.Text = "Output Filename Control";
@@ -253,63 +214,6 @@
             label1.TabIndex = 32;
             label1.Text = "Default Output Columns:";
             // 
-            // nudColumns3
-            // 
-            nudColumns3.Location = new Point(512, 110);
-            nudColumns3.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns3.Name = "nudColumns3";
-            nudColumns3.Size = new Size(155, 23);
-            nudColumns3.TabIndex = 31;
-            nudColumns3.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns3.ValueChanged += nudColumns3_ValueChanged;
-            // 
-            // nudColumns2
-            // 
-            nudColumns2.Location = new Point(512, 81);
-            nudColumns2.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns2.Name = "nudColumns2";
-            nudColumns2.Size = new Size(155, 23);
-            nudColumns2.TabIndex = 25;
-            nudColumns2.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns2.ValueChanged += nudColumns2_ValueChanged;
-            // 
-            // nudColumns1
-            // 
-            nudColumns1.Location = new Point(512, 52);
-            nudColumns1.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns1.Name = "nudColumns1";
-            nudColumns1.Size = new Size(155, 23);
-            nudColumns1.TabIndex = 19;
-            nudColumns1.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            nudColumns1.ValueChanged += nudColumns1_ValueChanged;
-            // 
-            // lblSuffixCondition9
-            // 
-            lblSuffixCondition9.AutoSize = true;
-            lblSuffixCondition9.Location = new Point(407, 113);
-            lblSuffixCondition9.Name = "lblSuffixCondition9";
-            lblSuffixCondition9.Size = new Size(99, 15);
-            lblSuffixCondition9.TabIndex = 30;
-            lblSuffixCondition9.Text = "and set Columns:";
-            // 
-            // lblSuffixCondition6
-            // 
-            lblSuffixCondition6.AutoSize = true;
-            lblSuffixCondition6.Location = new Point(407, 84);
-            lblSuffixCondition6.Name = "lblSuffixCondition6";
-            lblSuffixCondition6.Size = new Size(99, 15);
-            lblSuffixCondition6.TabIndex = 24;
-            lblSuffixCondition6.Text = "and set Columns:";
-            // 
-            // lblSuffixCondition3
-            // 
-            lblSuffixCondition3.AutoSize = true;
-            lblSuffixCondition3.Location = new Point(407, 55);
-            lblSuffixCondition3.Name = "lblSuffixCondition3";
-            lblSuffixCondition3.Size = new Size(99, 15);
-            lblSuffixCondition3.TabIndex = 18;
-            lblSuffixCondition3.Text = "and set Columns:";
-            // 
             // txtDefaultOutputName
             // 
             txtDefaultOutputName.Location = new Point(152, 22);
@@ -326,108 +230,6 @@
             lblDefaultOutputName.Size = new Size(140, 15);
             lblDefaultOutputName.TabIndex = 12;
             lblDefaultOutputName.Text = "Default Output Filename:";
-            // 
-            // txtSuffix3
-            // 
-            txtSuffix3.Location = new Point(287, 110);
-            txtSuffix3.Name = "txtSuffix3";
-            txtSuffix3.Size = new Size(114, 23);
-            txtSuffix3.TabIndex = 29;
-            txtSuffix3.TextChanged += txtSuffix3_TextChanged;
-            // 
-            // lblSuffixCondition8
-            // 
-            lblSuffixCondition8.AutoSize = true;
-            lblSuffixCondition8.Location = new Point(219, 113);
-            lblSuffixCondition8.Name = "lblSuffixCondition8";
-            lblSuffixCondition8.Size = new Size(62, 15);
-            lblSuffixCondition8.TabIndex = 28;
-            lblSuffixCondition8.Text = "add suffix:";
-            // 
-            // txtCondition3
-            // 
-            txtCondition3.Location = new Point(99, 110);
-            txtCondition3.Name = "txtCondition3";
-            txtCondition3.Size = new Size(114, 23);
-            txtCondition3.TabIndex = 27;
-            txtCondition3.TextChanged += txtCondition3_TextChanged;
-            // 
-            // lblSuffixCondition7
-            // 
-            lblSuffixCondition7.AutoSize = true;
-            lblSuffixCondition7.Location = new Point(6, 113);
-            lblSuffixCondition7.Name = "lblSuffixCondition7";
-            lblSuffixCondition7.Size = new Size(87, 15);
-            lblSuffixCondition7.TabIndex = 26;
-            lblSuffixCondition7.Text = "If filename has:";
-            // 
-            // txtSuffix2
-            // 
-            txtSuffix2.Location = new Point(287, 81);
-            txtSuffix2.Name = "txtSuffix2";
-            txtSuffix2.Size = new Size(114, 23);
-            txtSuffix2.TabIndex = 23;
-            txtSuffix2.TextChanged += txtSuffix2_TextChanged;
-            // 
-            // lblSuffixCondition5
-            // 
-            lblSuffixCondition5.AutoSize = true;
-            lblSuffixCondition5.Location = new Point(219, 84);
-            lblSuffixCondition5.Name = "lblSuffixCondition5";
-            lblSuffixCondition5.Size = new Size(62, 15);
-            lblSuffixCondition5.TabIndex = 22;
-            lblSuffixCondition5.Text = "add suffix:";
-            // 
-            // txtCondition2
-            // 
-            txtCondition2.Location = new Point(99, 81);
-            txtCondition2.Name = "txtCondition2";
-            txtCondition2.Size = new Size(114, 23);
-            txtCondition2.TabIndex = 21;
-            txtCondition2.TextChanged += txtCondition2_TextChanged;
-            // 
-            // lblSuffixCondition4
-            // 
-            lblSuffixCondition4.AutoSize = true;
-            lblSuffixCondition4.Location = new Point(6, 84);
-            lblSuffixCondition4.Name = "lblSuffixCondition4";
-            lblSuffixCondition4.Size = new Size(87, 15);
-            lblSuffixCondition4.TabIndex = 20;
-            lblSuffixCondition4.Text = "If filename has:";
-            // 
-            // txtSuffix1
-            // 
-            txtSuffix1.Location = new Point(287, 52);
-            txtSuffix1.Name = "txtSuffix1";
-            txtSuffix1.Size = new Size(114, 23);
-            txtSuffix1.TabIndex = 17;
-            txtSuffix1.TextChanged += txtSuffix1_TextChanged;
-            // 
-            // lblSuffixCondition2
-            // 
-            lblSuffixCondition2.AutoSize = true;
-            lblSuffixCondition2.Location = new Point(219, 55);
-            lblSuffixCondition2.Name = "lblSuffixCondition2";
-            lblSuffixCondition2.Size = new Size(62, 15);
-            lblSuffixCondition2.TabIndex = 16;
-            lblSuffixCondition2.Text = "add suffix:";
-            // 
-            // txtCondition1
-            // 
-            txtCondition1.Location = new Point(99, 52);
-            txtCondition1.Name = "txtCondition1";
-            txtCondition1.Size = new Size(114, 23);
-            txtCondition1.TabIndex = 15;
-            txtCondition1.TextChanged += txtCondition1_TextChanged;
-            // 
-            // lblSuffixCondition1
-            // 
-            lblSuffixCondition1.AutoSize = true;
-            lblSuffixCondition1.Location = new Point(6, 55);
-            lblSuffixCondition1.Name = "lblSuffixCondition1";
-            lblSuffixCondition1.Size = new Size(87, 15);
-            lblSuffixCondition1.TabIndex = 14;
-            lblSuffixCondition1.Text = "If filename has:";
             // 
             // chkExportData
             // 
@@ -571,9 +373,6 @@
             grpSuffixList.PerformLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).EndInit();
             ((System.ComponentModel.ISupportInitialize) nudDefaultColumns).EndInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns3).EndInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns2).EndInit();
-            ((System.ComponentModel.ISupportInitialize) nudColumns1).EndInit();
             grpOptions.ResumeLayout(false);
             grpOptions.PerformLayout();
             grpExportedItems.ResumeLayout(false);
@@ -597,26 +396,8 @@
         private GroupBox grpSuffixList;
         private TextBox txtDefaultOutputName;
         private Label lblDefaultOutputName;
-        private TextBox txtSuffix3;
-        private Label lblSuffixCondition8;
-        private TextBox txtCondition3;
-        private Label lblSuffixCondition7;
-        private TextBox txtSuffix2;
-        private Label lblSuffixCondition5;
-        private TextBox txtCondition2;
-        private Label lblSuffixCondition4;
-        private TextBox txtSuffix1;
-        private Label lblSuffixCondition2;
-        private TextBox txtCondition1;
-        private Label lblSuffixCondition1;
-        private Label lblSuffixCondition9;
-        private Label lblSuffixCondition6;
-        private Label lblSuffixCondition3;
         private CheckBox chkExportData;
         private Button btnExport;
-        private NumericUpDown nudColumns3;
-        private NumericUpDown nudColumns2;
-        private NumericUpDown nudColumns1;
         private NumericUpDown nudDefaultColumns;
         private Label label1;
         private CheckBox chkOriginalFilename;

@@ -14,35 +14,8 @@
     <Setting Name="OutputName" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="Columns" Type="System.Int32" Scope="User">
+    <Setting Name="OutputColumns" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">4</Value>
-    </Setting>
-    <Setting Name="Condition1" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="Condition2" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="Condition3" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="Suffix1" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="Suffix2" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="Suffix3" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="ConditionColumn1" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
-    </Setting>
-    <Setting Name="ConditionColumn2" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
-    </Setting>
-    <Setting Name="ConditionColumn3" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="ExportJson" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
