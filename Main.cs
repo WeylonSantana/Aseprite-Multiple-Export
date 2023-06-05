@@ -94,10 +94,6 @@ namespace Aseprite_Multiple_Export
                 LayerList = new string[0];
                 chkEveryLayer.Enabled = true;
             }
-            else
-            {
-                LayerList = new string[0];
-            }
 
             if (KeepOriginalFilename)
             {
