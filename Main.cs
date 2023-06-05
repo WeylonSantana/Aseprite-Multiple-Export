@@ -1,10 +1,9 @@
 using Aseprite_Multiple_Export.Properties;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace Aseprite_Multiple_Export
 {
-    public partial class Main : Form
+    public partial class Main: Form
     {
         private string Aseprite;
         private string FolderPath;
@@ -24,6 +23,8 @@ namespace Aseprite_Multiple_Export
         private bool ExportData = true;
         private bool KeepOriginalFilename = false;
         private bool EveryLayer = false;
+        private bool ExportTags = false;
+        private bool ExportLayers = false;
         private OutputWindow outputWindow;
         private int Scale;
 
@@ -52,6 +53,8 @@ namespace Aseprite_Multiple_Export
             chkExportData.Checked = Settings.Default.ExportJson;
             chkOriginalFilename.Checked = Settings.Default.KeepOriginalName;
             chkEveryLayer.Checked = Settings.Default.EveryLayer;
+            chkExportTags.Checked = Settings.Default.ExportTags;
+            chkExportLayers.Checked = Settings.Default.ExportLayers;
             nudScale.Value = Settings.Default.Scale;
 
             UpdateForm();
@@ -75,6 +78,8 @@ namespace Aseprite_Multiple_Export
             ExportData = chkExportData.Checked;
             KeepOriginalFilename = chkOriginalFilename.Checked;
             EveryLayer = chkEveryLayer.Checked;
+            ExportTags = chkExportTags.Checked;
+            ExportLayers = chkExportLayers.Checked;
             txtLayerList.Enabled = EveryLayer ? false : true;
             Scale = (int) nudScale.Value;
 
@@ -105,7 +110,7 @@ namespace Aseprite_Multiple_Export
 
             if (!string.IsNullOrEmpty(FolderPath))
             {
-                if(Directory.Exists(FolderPath))
+                if (Directory.Exists(FolderPath))
                 {
                     string[] files = Directory.GetFiles(FolderPath, "*.aseprite");
                     lstFileList.Items.Clear();
@@ -136,25 +141,25 @@ namespace Aseprite_Multiple_Export
 
         private void btnExport_Click(object sender, EventArgs e)
         {
-            if(string.IsNullOrEmpty(Aseprite))
+            if (string.IsNullOrEmpty(Aseprite))
             {
                 MessageBox.Show("No Aseprite Selected", "Error Detected");
                 return;
             }
 
-            if(string.IsNullOrEmpty(FolderPath))
+            if (string.IsNullOrEmpty(FolderPath))
             {
                 MessageBox.Show("No Folder Path Selected", "Error Detected");
                 return;
             }
 
-            if(string.IsNullOrEmpty(OutputName) && !KeepOriginalFilename)
+            if (string.IsNullOrEmpty(OutputName) && !KeepOriginalFilename)
             {
                 MessageBox.Show("Default Output Filename can not be empty!", "Error Detected");
                 return;
             }
 
-            if(FileList.Length < 1)
+            if (FileList.Length < 1)
             {
                 string title = "Error Detected in Input";
                 string msg = "There are no files to convert";
@@ -164,7 +169,7 @@ namespace Aseprite_Multiple_Export
 
             //Let's start structuring our command
             int index = 0;
-            foreach(var file in FileList)
+            foreach (var file in FileList)
             {
                 string suffix = "";
                 int columns = DefaultColums;
@@ -205,21 +210,31 @@ namespace Aseprite_Multiple_Export
                     columns = Columns3;
                 }
 
-                if(KeepOriginalFilename)
+                if (KeepOriginalFilename)
                 {
                     OutputName = fileName.Replace(".aseprite", "");
                 }
 
                 string finalOutputName = "";
-                if(LayerList != null && LayerList.Length > 0)
+                if (LayerList != null && LayerList.Length > 0)
                 {
-                    for(int i = 0; i < LayerList.Length; i++)
+                    for (int i = 0; i < LayerList.Length; i++)
                     {
                         finalOutputName = $"{OutputName}-{LayerList[i]}{suffix}";
                         command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {Scale} --sheet-columns {columns} --ignore-empty --sheet {Scale}x/{finalOutputName}.png";
 
-                        if(ExportData)
+                        if (ExportData)
                         {
+                            if (ExportTags)
+                            {
+                                command += " --list-tags";
+                            }
+
+                            if (ExportLayers)
+                            {
+                                command += " --list-layers";
+                            }
+
                             command += $" --data {Scale}x/{finalOutputName}.json";
                         }
 
@@ -228,7 +243,7 @@ namespace Aseprite_Multiple_Export
                 }
                 else
                 {
-                    if(index == 0 || KeepOriginalFilename || suffix.Length > 0)
+                    if (index == 0 || KeepOriginalFilename || suffix.Length > 0)
                     {
                         finalOutputName = $"{OutputName}{suffix}";
                     }
@@ -237,7 +252,7 @@ namespace Aseprite_Multiple_Export
                         finalOutputName = $"{OutputName}{index}{suffix}";
                     }
 
-                    if(EveryLayer)
+                    if (EveryLayer)
                     {
                         command = $"-b --all-layers --split-layers {fileName} --scale {Scale} --save-as {Scale}x/{finalOutputName}";
                         command += "-{layer}.png";
@@ -249,6 +264,16 @@ namespace Aseprite_Multiple_Export
 
                     if (ExportData)
                     {
+                        if (ExportTags)
+                        {
+                            command += " --list-tags";
+                        }
+
+                        if (ExportLayers)
+                        {
+                            command += " --list-layers";
+                        }
+
                         command += $" --data {Scale}x/{finalOutputName}.json";
                     }
 
@@ -394,7 +419,18 @@ namespace Aseprite_Multiple_Export
         {
             UpdateForm();
         }
+
         private void chkEveryLayer_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateForm();
+        }
+
+        private void chkExportTags_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateForm();
+        }
+
+        private void chkExportLayers_CheckedChanged(object sender, EventArgs e)
         {
             UpdateForm();
         }
@@ -437,10 +473,11 @@ namespace Aseprite_Multiple_Export
             Settings.Default.ExportJson = chkExportData.Checked;
             Settings.Default.KeepOriginalName = chkOriginalFilename.Checked;
             Settings.Default.EveryLayer = chkEveryLayer.Checked;
+            Settings.Default.ExportTags = chkExportTags.Checked;
+            Settings.Default.ExportLayers = chkExportLayers.Checked;
             Settings.Default.Save();
             MessageBox.Show("Settings Saved", "Save Settings", MessageBoxButtons.OK);
         }
         #endregion
-
     }
 }
