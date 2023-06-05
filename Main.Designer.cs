@@ -68,9 +68,10 @@
             btnExport = new Button();
             chkOriginalFilename = new CheckBox();
             btnSettings = new Button();
-            btnExportDebug = new Button();
             chkEveryLayer = new CheckBox();
             grpOptions = new GroupBox();
+            grpExportedItems = new GroupBox();
+            lstExportedItems = new ListBox();
             chkExportLayers = new CheckBox();
             chkExportTags = new CheckBox();
             grpSuffixList.SuspendLayout();
@@ -80,6 +81,7 @@
             ((System.ComponentModel.ISupportInitialize) nudColumns2).BeginInit();
             ((System.ComponentModel.ISupportInitialize) nudColumns1).BeginInit();
             grpOptions.SuspendLayout();
+            grpExportedItems.SuspendLayout();
             SuspendLayout();
             // 
             // txtAsepriteSearch
@@ -471,16 +473,6 @@
             btnSettings.UseVisualStyleBackColor = true;
             btnSettings.Click += btnSettings_Click;
             // 
-            // btnExportDebug
-            // 
-            btnExportDebug.Location = new Point(419, 519);
-            btnExportDebug.Name = "btnExportDebug";
-            btnExportDebug.Size = new Size(140, 30);
-            btnExportDebug.TabIndex = 36;
-            btnExportDebug.Text = "Show Export Debug";
-            btnExportDebug.UseVisualStyleBackColor = true;
-            btnExportDebug.Click += btnExportDebug_Click;
-            // 
             // chkEveryLayer
             // 
             chkEveryLayer.AutoSize = true;
@@ -494,6 +486,7 @@
             // 
             // grpOptions
             // 
+            grpOptions.Controls.Add(grpExportedItems);
             grpOptions.Controls.Add(chkExportLayers);
             grpOptions.Controls.Add(chkExportTags);
             grpOptions.Controls.Add(chkExportData);
@@ -505,6 +498,25 @@
             grpOptions.TabIndex = 38;
             grpOptions.TabStop = false;
             grpOptions.Text = "Extra Options";
+            // 
+            // grpExportedItems
+            // 
+            grpExportedItems.Controls.Add(lstExportedItems);
+            grpExportedItems.Location = new Point(6, 257);
+            grpExportedItems.Name = "grpExportedItems";
+            grpExportedItems.Size = new Size(177, 280);
+            grpExportedItems.TabIndex = 40;
+            grpExportedItems.TabStop = false;
+            grpExportedItems.Text = "Exported Items";
+            // 
+            // lstExportedItems
+            // 
+            lstExportedItems.FormattingEnabled = true;
+            lstExportedItems.ItemHeight = 15;
+            lstExportedItems.Location = new Point(6, 28);
+            lstExportedItems.Name = "lstExportedItems";
+            lstExportedItems.Size = new Size(165, 244);
+            lstExportedItems.TabIndex = 10;
             // 
             // chkExportLayers
             // 
@@ -538,7 +550,6 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(971, 561);
             Controls.Add(grpOptions);
-            Controls.Add(btnExportDebug);
             Controls.Add(btnSettings);
             Controls.Add(btnExport);
             Controls.Add(grpSuffixList);
@@ -565,6 +576,7 @@
             ((System.ComponentModel.ISupportInitialize) nudColumns1).EndInit();
             grpOptions.ResumeLayout(false);
             grpOptions.PerformLayout();
+            grpExportedItems.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -611,10 +623,11 @@
         private Button btnSettings;
         private NumericUpDown nudScale;
         private Label label2;
-        private Button btnExportDebug;
         private CheckBox chkEveryLayer;
         private GroupBox grpOptions;
         private CheckBox chkExportLayers;
         private CheckBox chkExportTags;
+        private GroupBox grpExportedItems;
+        private ListBox lstExportedItems;
     }
 }
