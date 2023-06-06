@@ -1,5 +1,6 @@
 using Aseprite_Multiple_Export.Properties;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Aseprite_Multiple_Export
 {
@@ -121,24 +122,24 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void btnExport_Click(object sender, EventArgs e)
+        private bool checkBasicErrors()
         {
             if (string.IsNullOrEmpty(Aseprite))
             {
                 MessageBox.Show("No Aseprite Selected", "Error Detected");
-                return;
+                return false;
             }
 
             if (string.IsNullOrEmpty(FolderPath))
             {
                 MessageBox.Show("No Folder Path Selected", "Error Detected");
-                return;
+                return false;
             }
 
             if (string.IsNullOrEmpty(OutputName) && !KeepOriginalFilename)
             {
                 MessageBox.Show("Default Output Filename can not be empty!", "Error Detected");
-                return;
+                return false;
             }
 
             if (FileList.Length < 1)
@@ -146,6 +147,16 @@ namespace Aseprite_Multiple_Export
                 string title = "Error Detected in Input";
                 string msg = "There are no files to convert";
                 MessageBox.Show(msg, title);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void btnExport_Click(object sender, EventArgs e)
+        {
+            if(!checkBasicErrors())
+            {
                 return;
             }
 
@@ -269,6 +280,93 @@ namespace Aseprite_Multiple_Export
             process.WaitForExit();
 
             lstExportedItems.Items.Add(fileName);
+        }
+
+        private void RemoveFrames()
+        {
+            if (!checkBasicErrors())
+            {
+                return;
+            }
+
+            #region Create input form
+            Form form = new Form();
+            form.Text = "Remove frames from files";
+            form.MinimizeBox = false;
+            form.MaximizeBox = false;
+            form.FormBorderStyle = FormBorderStyle.FixedSingle;
+            form.Size = new Size(240, 130);
+            form.StartPosition = FormStartPosition.CenterScreen;
+
+            Label title = new Label();
+            title.Text = "Remove selected frames from all files";
+            title.Location = new Point(10, 10);
+            title.AutoSize = true;
+            form.Controls.Add(title);
+
+            Label label = new Label();
+            label.Text = "Frame numbers:";
+            label.Location = new Point(10, 30);
+            label.AutoSize = true;
+            form.Controls.Add(label);
+
+            TextBox textBox = new TextBox();
+            textBox.Location = new Point(110, 28);
+            textBox.TextChanged += (s, e) =>
+            {
+                textBox.Text = Regex.Replace(textBox.Text, "[^0-9,]", "");
+            };
+            form.Controls.Add(textBox);
+
+            Button button = new Button();
+            button.Text = "OK";
+            button.Location = new Point(135, 60);
+            button.DialogResult = DialogResult.OK;
+            form.Controls.Add(button);
+
+            form.AcceptButton = button;
+            #endregion
+
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                string frames = textBox.Text;
+                string[] frameNumbers = frames.Split(',');
+                HashSet<string> uniqueFrameNumbers = new HashSet<string>(frameNumbers);
+                string uniqueFrames = string.Join(",", uniqueFrameNumbers);
+
+                if (uniqueFrames.Length == 0)
+                {
+                    MessageBox.Show("Frame number field can not be empty!");
+                    return;
+                }
+
+                Process process = new Process();
+                process.StartInfo.FileName = "cmd.exe";
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.WorkingDirectory = FolderPath;
+
+                string scriptPath = Path.Combine(Application.StartupPath, "RemoveFrames.script.lua");
+
+                foreach (var file in FileList)
+                {
+                    string[]? filePath = file.Split("\\");
+                    string fileName = "";
+                    if (filePath.Length > 0)
+                    {
+                        fileName = filePath[filePath.Length - 1];
+                    }
+
+                    string command = $"-b --script-param filename={fileName} --script-param frames={uniqueFrames} --script {scriptPath}";
+                    string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
+                    process.StartInfo.Arguments = finalCommand;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                }
+
+                MessageBox.Show("Frames removidos com sucesso!");
+            }
         }
 
         #region InputsChanged
@@ -409,6 +507,11 @@ namespace Aseprite_Multiple_Export
         private void nudScale_ValueChanged(object sender, EventArgs e)
         {
             UpdateForm();
+        }
+
+        private void btnRemoveFrames_Click(object sender, EventArgs e)
+        {
+            RemoveFrames();
         }
 
         private void btnSettings_Click(object sender, EventArgs e)
