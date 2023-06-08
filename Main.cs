@@ -19,6 +19,8 @@ namespace Aseprite_Multiple_Export
         private bool ExportLayers = false;
         private int SheetScale;
 
+        private Process process;
+
         public Main()
         {
             InitializeComponent();
@@ -166,84 +168,38 @@ namespace Aseprite_Multiple_Export
             int index = 0;
             foreach (var file in FileList)
             {
-                string command = "";
-
                 string[]? filePath = file.Split("\\");
-                string fileName = "";
-                if (filePath.Length > 0)
+                string filename = filePath[filePath.Length - 1];
+
+                if (EveryLayer)
                 {
-                    fileName = filePath[filePath.Length - 1];
+                    LayerList = GetLayers(filename);
                 }
 
                 if (KeepOriginalFilename)
                 {
-                    OutputName = fileName.Replace(".aseprite", "");
+                    OutputName = filename.Replace(".aseprite", "");
                 }
 
-                string finalOutputName = "";
                 if (LayerList != null && LayerList.Length > 0)
                 {
                     for (int i = 0; i < LayerList.Length; i++)
                     {
-                        finalOutputName = $"{OutputName}-{LayerList[i]}";
-                        command = $"-b --layer \"{LayerList[i]}\" {fileName} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
-
-                        if (ExportData)
-                        {
-                            if (ExportTags)
-                            {
-                                command += " --list-tags";
-                            }
-
-                            if (ExportLayers)
-                            {
-                                command += " --list-layers";
-                            }
-
-                            command += $" --data {SheetScale}x/{finalOutputName}.json";
-                        }
-
-                        Export(command, finalOutputName);
+                        string layer = LayerList[i];
+                        string finalOutputName = $"{OutputName}-{layer}";
+                        Export(filename, finalOutputName, layer);
                     }
                 }
                 else
                 {
-                    if (index == 0 || KeepOriginalFilename)
+                    string finalOutputName = OutputName;
+
+                    if (index > 0 && !KeepOriginalFilename)
                     {
-                        finalOutputName = $"{OutputName}";
-                    }
-                    else
-                    {
-                        finalOutputName = $"{OutputName}{index}";
+                        finalOutputName += $"{index}";
                     }
 
-                    if (EveryLayer)
-                    {
-                        LayerList = GetLayers(fileName);
-                        btnExport_Click(null, null);
-                        return;
-                    }
-                    else
-                    {
-                        command = $"-b --all-layers {fileName} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{finalOutputName}.png";
-                    }
-
-                    if (ExportData)
-                    {
-                        if (ExportTags)
-                        {
-                            command += " --list-tags";
-                        }
-
-                        if (ExportLayers)
-                        {
-                            command += " --list-layers";
-                        }
-
-                        command += $" --data {SheetScale}x/{finalOutputName}.json";
-                    }
-
-                    Export(command, finalOutputName);
+                    Export(filename, finalOutputName);
                 }
 
                 index++;
@@ -254,8 +210,8 @@ namespace Aseprite_Multiple_Export
 
         private string[] GetLayers(string fileName)
         {
-            string finalCommand = $"/C \"\"{Aseprite}\" -b --list-layers {fileName}\"";
-            Process process = new Process();
+            string finalCommand = $"/C \"\"{Aseprite}\" -b --all-layers --list-layers {fileName}\"";
+            process = new Process();
             process.StartInfo.FileName = "cmd.exe";
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.WorkingDirectory = FolderPath;
@@ -268,18 +224,44 @@ namespace Aseprite_Multiple_Export
             return layers;
         }
 
-        private void Export(string command, string fileName)
+        private void Export(string filename, string outputName, string layer = null)
         {
+            string command = "-b";
+            if(layer != null)
+            {
+                command += $" --layer \"{layer}\"";
+            }
+            else
+            {
+                command += " --all-layers";
+            }
+
+            command += $" {filename} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{outputName}.png";
+
+            if (ExportData)
+            {
+                if (ExportTags)
+                {
+                    command += " --list-tags";
+                }
+
+                if (ExportLayers)
+                {
+                    command += " --list-layers";
+                }
+
+                command += $" --data {SheetScale}x/{outputName}.json";
+            }
+
             string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
-            Process process = new Process();
+            process = new Process();
             process.StartInfo.FileName = "cmd.exe";
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.WorkingDirectory = FolderPath;
             process.StartInfo.Arguments = finalCommand;
             process.Start();
-            process.WaitForExit();
 
-            lstExportedItems.Items.Add(fileName);
+            lstExportedItems.Items.Add(outputName);
         }
 
         private void RemoveFrames()
@@ -340,11 +322,6 @@ namespace Aseprite_Multiple_Export
                     return;
                 }
 
-                Process process = new Process();
-                process.StartInfo.FileName = "cmd.exe";
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.WorkingDirectory = FolderPath;
-
                 string scriptPath = Path.Combine(Application.StartupPath, "RemoveFrames.script.lua");
 
                 foreach (var file in FileList)
@@ -358,11 +335,13 @@ namespace Aseprite_Multiple_Export
 
                     string command = $"-b --script-param filename={fileName} --script-param frames={uniqueFrames} --script {scriptPath}";
                     string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
+
+                    process = new Process();
+                    process.StartInfo.FileName = "cmd.exe";
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.WorkingDirectory = FolderPath;
                     process.StartInfo.Arguments = finalCommand;
-                    process.StartInfo.RedirectStandardOutput = true;
                     process.Start();
-                    string output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
                 }
 
                 MessageBox.Show("Frames removidos com sucesso!");
