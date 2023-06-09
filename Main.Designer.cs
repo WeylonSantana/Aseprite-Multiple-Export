@@ -52,17 +52,15 @@
             btnSettings = new Button();
             chkEveryLayer = new CheckBox();
             grpOptions = new GroupBox();
-            grpExportedItems = new GroupBox();
+            grpExportedFiles = new GroupBox();
             lstExportedItems = new ListBox();
-            chkExportLayers = new CheckBox();
-            chkExportTags = new CheckBox();
             btnRemoveFrames = new Button();
             btnAddTags = new Button();
             grpSuffixList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             ((System.ComponentModel.ISupportInitialize) nudDefaultColumns).BeginInit();
             grpOptions.SuspendLayout();
-            grpExportedItems.SuspendLayout();
+            grpExportedFiles.SuspendLayout();
             SuspendLayout();
             // 
             // txtAsepriteSearch
@@ -180,6 +178,8 @@
             // 
             // nudScale
             // 
+            nudScale.DecimalPlaces = 2;
+            nudScale.Increment = new decimal(new int[] { 1, 0, 0, 131072 });
             nudScale.Location = new Point(645, 21);
             nudScale.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             nudScale.Name = "nudScale";
@@ -259,6 +259,8 @@
             // chkOriginalFilename
             // 
             chkOriginalFilename.AutoSize = true;
+            chkOriginalFilename.Checked = true;
+            chkOriginalFilename.CheckState = CheckState.Checked;
             chkOriginalFilename.Location = new Point(6, 47);
             chkOriginalFilename.Name = "chkOriginalFilename";
             chkOriginalFilename.Size = new Size(149, 19);
@@ -290,9 +292,7 @@
             // 
             // grpOptions
             // 
-            grpOptions.Controls.Add(grpExportedItems);
-            grpOptions.Controls.Add(chkExportLayers);
-            grpOptions.Controls.Add(chkExportTags);
+            grpOptions.Controls.Add(grpExportedFiles);
             grpOptions.Controls.Add(chkExportData);
             grpOptions.Controls.Add(chkEveryLayer);
             grpOptions.Controls.Add(chkOriginalFilename);
@@ -303,50 +303,24 @@
             grpOptions.TabStop = false;
             grpOptions.Text = "Extra Options";
             // 
-            // grpExportedItems
+            // grpExportedFiles
             // 
-            grpExportedItems.Controls.Add(lstExportedItems);
-            grpExportedItems.Location = new Point(6, 257);
-            grpExportedItems.Name = "grpExportedItems";
-            grpExportedItems.Size = new Size(177, 280);
-            grpExportedItems.TabIndex = 40;
-            grpExportedItems.TabStop = false;
-            grpExportedItems.Text = "Exported Items";
+            grpExportedFiles.Controls.Add(lstExportedItems);
+            grpExportedFiles.Location = new Point(6, 254);
+            grpExportedFiles.Name = "grpExportedFiles";
+            grpExportedFiles.Size = new Size(177, 283);
+            grpExportedFiles.TabIndex = 40;
+            grpExportedFiles.TabStop = false;
+            grpExportedFiles.Text = "Exported Files";
             // 
             // lstExportedItems
             // 
             lstExportedItems.FormattingEnabled = true;
             lstExportedItems.ItemHeight = 15;
-            lstExportedItems.Location = new Point(6, 28);
+            lstExportedItems.Location = new Point(6, 18);
             lstExportedItems.Name = "lstExportedItems";
-            lstExportedItems.Size = new Size(165, 244);
+            lstExportedItems.Size = new Size(165, 259);
             lstExportedItems.TabIndex = 10;
-            // 
-            // chkExportLayers
-            // 
-            chkExportLayers.AutoSize = true;
-            chkExportLayers.Checked = true;
-            chkExportLayers.CheckState = CheckState.Checked;
-            chkExportLayers.Location = new Point(6, 122);
-            chkExportLayers.Name = "chkExportLayers";
-            chkExportLayers.Size = new Size(177, 19);
-            chkExportLayers.TabIndex = 39;
-            chkExportLayers.Text = "Export with LAYERS in JSON?";
-            chkExportLayers.UseVisualStyleBackColor = true;
-            chkExportLayers.CheckedChanged += chkExportLayers_CheckedChanged;
-            // 
-            // chkExportTags
-            // 
-            chkExportTags.AutoSize = true;
-            chkExportTags.Checked = true;
-            chkExportTags.CheckState = CheckState.Checked;
-            chkExportTags.Location = new Point(6, 97);
-            chkExportTags.Name = "chkExportTags";
-            chkExportTags.Size = new Size(165, 19);
-            chkExportTags.TabIndex = 38;
-            chkExportTags.Text = "Export with TAGS in JSON?";
-            chkExportTags.UseVisualStyleBackColor = true;
-            chkExportTags.CheckedChanged += chkExportTags_CheckedChanged;
             // 
             // btnRemoveFrames
             // 
@@ -399,7 +373,7 @@
             ((System.ComponentModel.ISupportInitialize) nudDefaultColumns).EndInit();
             grpOptions.ResumeLayout(false);
             grpOptions.PerformLayout();
-            grpExportedItems.ResumeLayout(false);
+            grpExportedFiles.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -430,9 +404,7 @@
         private Label label2;
         private CheckBox chkEveryLayer;
         private GroupBox grpOptions;
-        private CheckBox chkExportLayers;
-        private CheckBox chkExportTags;
-        private GroupBox grpExportedItems;
+        private GroupBox grpExportedFiles;
         private ListBox lstExportedItems;
         private Button btnRemoveFrames;
         private Button btnAddTags;

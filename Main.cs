@@ -36,8 +36,6 @@ namespace Aseprite_Multiple_Export
             chkExportData.Checked = Settings.Default.ExportJson;
             chkOriginalFilename.Checked = Settings.Default.KeepOriginalName;
             chkEveryLayer.Checked = Settings.Default.EveryLayer;
-            chkExportTags.Checked = Settings.Default.ExportTags;
-            chkExportLayers.Checked = Settings.Default.ExportLayers;
             nudScale.Value = Settings.Default.Scale;
 
             UpdateForm();
@@ -52,8 +50,6 @@ namespace Aseprite_Multiple_Export
             ExportData = chkExportData.Checked;
             KeepOriginalFilename = chkOriginalFilename.Checked;
             EveryLayer = chkEveryLayer.Checked;
-            ExportTags = chkExportTags.Checked;
-            ExportLayers = chkExportLayers.Checked;
             txtLayerList.Enabled = EveryLayer ? false : true;
             SheetScale = (int) nudScale.Value;
 
@@ -76,21 +72,6 @@ namespace Aseprite_Multiple_Export
             else
             {
                 txtDefaultOutputName.Enabled = true;
-            }
-
-            if (ExportData)
-            {
-                chkExportTags.Enabled = true;
-                chkExportLayers.Enabled = true;
-            }
-            else
-            {
-                chkExportTags.Checked = false;
-                chkExportTags.Enabled = false;
-                chkExportLayers.Checked = false;
-                chkExportLayers.Enabled = false;
-                ExportTags = false;
-                ExportLayers = false;
             }
 
             if (!string.IsNullOrEmpty(FolderPath))
@@ -176,84 +157,48 @@ namespace Aseprite_Multiple_Export
             }
 
             lstExportedItems.Items.Clear();
+            string scriptPath = Path.Combine(Application.StartupPath, "Export.script.lua");
 
-            //Let's start structuring our command
-            int index = 0;
             foreach (var file in FileList)
             {
                 string[]? filePath = file.Split("\\");
                 string filename = filePath[filePath.Length - 1];
-
-                if (EveryLayer)
-                {
-                    string command = $"-b --all-layers --list-layers {filename}\"";
-                    LayerList = ProcessCommand(command).Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                }
 
                 if (KeepOriginalFilename)
                 {
                     OutputName = filename.Replace(".aseprite", "");
                 }
 
-                if (LayerList != null && LayerList.Length > 0)
+                string command = "-b";
+                command += $" --script-param filename={filename}";
+                command += $" --script-param scale={SheetScale}";
+                command += $" --script-param columns={OutputColums}";
+                command += $" --script-param outputName={OutputName}";
+
+                if (EveryLayer)
                 {
-                    for (int i = 0; i < LayerList.Length; i++)
-                    {
-                        string layer = LayerList[i];
-                        string finalOutputName = $"{OutputName}-{layer}";
-                        Export(filename, finalOutputName, layer);
-                    }
+                    command += $" --script-param everyLayer=True";
                 }
                 else
                 {
-                    string finalOutputName = OutputName;
-
-                    if (index > 0 && !KeepOriginalFilename)
+                    if (LayerList.Length != 0)
                     {
-                        finalOutputName += $"{index}";
+                        command += $" --script-param layerList={string.Join(',', LayerList)}";
                     }
-
-                    Export(filename, finalOutputName);
                 }
 
-                index++;
+                if (ExportData)
+                {
+                    command += $" --script-param exportData=True";
+                }
+
+                command += $" --script {scriptPath}";
+
+                ProcessCommand(command);
+                lstExportedItems.Items.Add(filename);
             }
 
             MessageBox.Show("The files have been exported!", "Successfully exported", MessageBoxButtons.OK);
-        }
-
-        private void Export(string filename, string outputName, string layer = null)
-        {
-            string command = "-b";
-            if (layer != null)
-            {
-                command += $" --layer \"{layer}\"";
-            }
-            else
-            {
-                command += " --all-layers";
-            }
-
-            command += $" {filename} --scale {SheetScale} --sheet-columns {OutputColums} --ignore-empty --sheet {SheetScale}x/{outputName}.png";
-
-            if (ExportData)
-            {
-                if (ExportTags)
-                {
-                    command += " --list-tags";
-                }
-
-                if (ExportLayers)
-                {
-                    command += " --list-layers";
-                }
-
-                command += $" --data {SheetScale}x/{outputName}.json";
-            }
-
-            ProcessCommand(command);
-
-            lstExportedItems.Items.Add(outputName);
         }
 
         private void btnRemoveFrames_Click(object sender, EventArgs e)
@@ -405,7 +350,7 @@ namespace Aseprite_Multiple_Export
                     string command = $"-b";
                     command += $" --script-param filename={filename}";
                     command += $" --script-param tags={string.Join(',', tags)}";
-                    if(removeTagsCheckbox.Checked)
+                    if (removeTagsCheckbox.Checked)
                     {
                         command += $" --script-param clean={removeTagsCheckbox.Checked}";
                     }
@@ -567,8 +512,6 @@ namespace Aseprite_Multiple_Export
             Settings.Default.ExportJson = chkExportData.Checked;
             Settings.Default.KeepOriginalName = chkOriginalFilename.Checked;
             Settings.Default.EveryLayer = chkEveryLayer.Checked;
-            Settings.Default.ExportTags = chkExportTags.Checked;
-            Settings.Default.ExportLayers = chkExportLayers.Checked;
             Settings.Default.Save();
             MessageBox.Show("Settings Saved", "Save Settings", MessageBoxButtons.OK);
         }

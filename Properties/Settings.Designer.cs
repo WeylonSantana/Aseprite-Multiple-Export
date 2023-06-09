@@ -130,29 +130,5 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["EveryLayer"] = value;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ExportTags {
-            get {
-                return ((bool)(this["ExportTags"]));
-            }
-            set {
-                this["ExportTags"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ExportLayers {
-            get {
-                return ((bool)(this["ExportLayers"]));
-            }
-            set {
-                this["ExportLayers"] = value;
-            }
-        }
     }
 }
