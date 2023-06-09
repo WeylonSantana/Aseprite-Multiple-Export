@@ -104,13 +104,13 @@ namespace Aseprite_Multiple_Export
                         foreach (var file in files)
                         {
                             var filePath = file.Split("\\");
-                            string fileName = "";
+                            string filename = "";
                             if (filePath.Length > 0)
                             {
-                                fileName = filePath[filePath.Length - 1];
+                                filename = filePath[filePath.Length - 1];
                             }
 
-                            lstFileList.Items.Add(fileName);
+                            lstFileList.Items.Add(filename);
                         }
                     }
                     FileList = files;
@@ -155,9 +155,22 @@ namespace Aseprite_Multiple_Export
             return true;
         }
 
+        private string ProcessCommand(string command)
+        {
+            process = new Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.WorkingDirectory = FolderPath;
+            process.StartInfo.Arguments = $"/C \"\"{Aseprite}\" {command}\"";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            return output;
+        }
+
         private void btnExport_Click(object sender, EventArgs e)
         {
-            if(!checkBasicErrors())
+            if (!checkBasicErrors())
             {
                 return;
             }
@@ -208,9 +221,9 @@ namespace Aseprite_Multiple_Export
             MessageBox.Show("The files have been exported!", "Successfully exported", MessageBoxButtons.OK);
         }
 
-        private string[] GetLayers(string fileName)
+        private string[] GetLayers(string filename)
         {
-            string finalCommand = $"/C \"\"{Aseprite}\" -b --all-layers --list-layers {fileName}\"";
+            string finalCommand = $"/C \"\"{Aseprite}\" -b --all-layers --list-layers {filename}\"";
             process = new Process();
             process.StartInfo.FileName = "cmd.exe";
             process.StartInfo.CreateNoWindow = true;
@@ -224,10 +237,28 @@ namespace Aseprite_Multiple_Export
             return layers;
         }
 
+        private int GetFrameCount(string filename)
+        {
+            string scriptPath = Path.Combine(Application.StartupPath, "GetFrameCount.script.lua");
+            string command = $"-b --script-param filename={filename} --script {scriptPath}";
+            string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
+
+            process = new Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.WorkingDirectory = FolderPath;
+            process.StartInfo.Arguments = finalCommand;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            return int.Parse(output);
+        }
+
         private void Export(string filename, string outputName, string layer = null)
         {
             string command = "-b";
-            if(layer != null)
+            if (layer != null)
             {
                 command += $" --layer \"{layer}\"";
             }
@@ -318,7 +349,8 @@ namespace Aseprite_Multiple_Export
 
                 if (uniqueFrames.Length == 0)
                 {
-                    MessageBox.Show("Frame number field can not be empty!");
+                    string msgTitle = "Error Detected in Input";
+                    MessageBox.Show("Frame number field can not be empty!", msgTitle);
                     return;
                 }
 
@@ -327,13 +359,13 @@ namespace Aseprite_Multiple_Export
                 foreach (var file in FileList)
                 {
                     string[]? filePath = file.Split("\\");
-                    string fileName = "";
+                    string filename = "";
                     if (filePath.Length > 0)
                     {
-                        fileName = filePath[filePath.Length - 1];
+                        filename = filePath[filePath.Length - 1];
                     }
 
-                    string command = $"-b --script-param filename={fileName} --script-param frames={uniqueFrames} --script {scriptPath}";
+                    string command = $"-b --script-param filename={filename} --script-param frames={uniqueFrames} --script {scriptPath}";
                     string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
 
                     process = new Process();
@@ -344,7 +376,106 @@ namespace Aseprite_Multiple_Export
                     process.Start();
                 }
 
-                MessageBox.Show("Frames removidos com sucesso!");
+                MessageBox.Show("Frames removidos com sucesso!", Application.ProductName);
+            }
+        }
+
+        private void AddTags()
+        {
+            if (!checkBasicErrors())
+            {
+                return;
+            }
+
+            #region Create input form
+            Form form = new Form();
+            form.Text = "Add tags in files";
+            form.MinimizeBox = false;
+            form.MaximizeBox = false;
+            form.FormBorderStyle = FormBorderStyle.FixedSingle;
+            form.Size = new Size(300, 180);
+            form.StartPosition = FormStartPosition.CenterScreen;
+
+            Label label = new Label();
+            label.Text = "Tags:";
+            label.Location = new Point(10, 10);
+            label.AutoSize = true;
+            form.Controls.Add(label);
+
+            TextBox textBox = new TextBox();
+            textBox.Location = new Point(50, 8);
+            textBox.Width = 200;
+            form.Controls.Add(textBox);
+
+            Label separatorLabel = new Label();
+            separatorLabel.Text = "All tags will be separated by comma";
+            separatorLabel.Location = new Point(10, 40);
+            separatorLabel.AutoSize = true;
+            form.Controls.Add(separatorLabel);
+
+            CheckBox removeTagsCheckbox = new CheckBox();
+            removeTagsCheckbox.Text = "Remove all tags";
+            removeTagsCheckbox.Location = new Point(10, 70);
+            removeTagsCheckbox.AutoSize = true;
+            form.Controls.Add(removeTagsCheckbox);
+
+            Button button = new Button();
+            button.Text = "OK";
+            button.Location = new Point(200, 110);
+            button.DialogResult = DialogResult.OK;
+            form.Controls.Add(button);
+
+            form.AcceptButton = button;
+            #endregion
+
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                string[] tags = textBox.Text.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(tag => tag.Trim())
+                            .Distinct()
+                            .ToArray();
+
+                if (tags.Length == 0)
+                {
+                    string msgTitle = "Error Detected in Input";
+                    MessageBox.Show("Frame number field can not be empty!", msgTitle);
+                    return;
+                }
+
+                string addScriptPath = Path.Combine(Application.StartupPath, "AddTag.script.lua");
+                string removeScriptPath = Path.Combine(Application.StartupPath, "CleanTags.script.lua");
+
+                foreach (var file in FileList)
+                {
+                    string[]? filePath = file.Split("\\");
+                    string filename = filePath[filePath.Length - 1];
+
+                    if (removeTagsCheckbox.Checked)
+                    {
+                        string command = $"-b --script-param filename={filename} --script {removeScriptPath}";
+                        ProcessCommand(command);
+                    }
+
+                    int frameCount = GetFrameCount(filename);
+                    int tagCount = frameCount / tags.Length;
+
+                    for (int i = 0; i < tags.Length; i++)
+                    {
+                        int startFrame = i * tagCount + 1;
+                        int endFrame = (i + 1) * tagCount;
+                        string tag = tags[i];
+
+                        string command = $"-b";
+                        command += $" --script-param filename={filename}";
+                        command += $" --script-param tag={tag}";
+                        command += $" --script-param start={startFrame}";
+                        command += $" --script-param end={endFrame}";
+                        command += $" --script {addScriptPath}";
+                        ProcessCommand(command);
+                    }
+                }
+
+                MessageBox.Show("Tags adicionadas com sucesso!", Application.ProductName);
             }
         }
 
@@ -491,6 +622,11 @@ namespace Aseprite_Multiple_Export
         private void btnRemoveFrames_Click(object sender, EventArgs e)
         {
             RemoveFrames();
+        }
+
+        private void btnAddTags_Click(object sender, EventArgs e)
+        {
+            AddTags();
         }
 
         private void btnSettings_Click(object sender, EventArgs e)

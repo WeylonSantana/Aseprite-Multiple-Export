@@ -21,5 +21,5 @@ for i in string.gmatch(frames, "%d+") do
     end
 end
 
-sprite:saveCopyAs(app.params["filename"])
-app.quit()
+app.command.SaveFile()
+app.command.CloseFile()

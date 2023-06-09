@@ -57,6 +57,7 @@
             chkExportLayers = new CheckBox();
             chkExportTags = new CheckBox();
             btnRemoveFrames = new Button();
+            btnAddTags = new Button();
             grpSuffixList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             ((System.ComponentModel.ISupportInitialize) nudDefaultColumns).BeginInit();
@@ -357,11 +358,22 @@
             btnRemoveFrames.UseVisualStyleBackColor = true;
             btnRemoveFrames.Click += btnRemoveFrames_Click;
             // 
+            // btnAddTags
+            // 
+            btnAddTags.Location = new Point(353, 519);
+            btnAddTags.Name = "btnAddTags";
+            btnAddTags.Size = new Size(100, 30);
+            btnAddTags.TabIndex = 42;
+            btnAddTags.Text = "Add Tags";
+            btnAddTags.UseVisualStyleBackColor = true;
+            btnAddTags.Click += btnAddTags_Click;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(971, 561);
+            Controls.Add(btnAddTags);
             Controls.Add(btnRemoveFrames);
             Controls.Add(grpOptions);
             Controls.Add(btnSettings);
@@ -423,5 +435,6 @@
         private GroupBox grpExportedItems;
         private ListBox lstExportedItems;
         private Button btnRemoveFrames;
+        private Button btnAddTags;
     }
 }
