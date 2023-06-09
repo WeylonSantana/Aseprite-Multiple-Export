@@ -256,7 +256,7 @@ namespace Aseprite_Multiple_Export
             lstExportedItems.Items.Add(outputName);
         }
 
-        private void RemoveFrames()
+        private void btnRemoveFrames_Click(object sender, EventArgs e)
         {
             if (!checkBasicErrors())
             {
@@ -334,7 +334,7 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void AddTags()
+        private void btnAddTags_Click(object sender, EventArgs e)
         {
             if (!checkBasicErrors())
             {
@@ -573,16 +573,6 @@ namespace Aseprite_Multiple_Export
         private void nudScale_ValueChanged(object sender, EventArgs e)
         {
             UpdateForm();
-        }
-
-        private void btnRemoveFrames_Click(object sender, EventArgs e)
-        {
-            RemoveFrames();
-        }
-
-        private void btnAddTags_Click(object sender, EventArgs e)
-        {
-            AddTags();
         }
 
         private void btnSettings_Click(object sender, EventArgs e)
