@@ -396,39 +396,21 @@ namespace Aseprite_Multiple_Export
                     return;
                 }
 
-                string addScriptPath = Path.Combine(Application.StartupPath, "AddTag.script.lua");
-                string removeScriptPath = Path.Combine(Application.StartupPath, "CleanTags.script.lua");
-                string frameCountScriptPath = Path.Combine(Application.StartupPath, "GetFrameCount.script.lua");
+                string scriptPath = Path.Combine(Application.StartupPath, "AddTag.script.lua");
 
                 foreach (var file in FileList)
                 {
                     string[]? filePath = file.Split("\\");
                     string filename = filePath[filePath.Length - 1];
-
-                    if (removeTagsCheckbox.Checked)
+                    string command = $"-b";
+                    command += $" --script-param filename={filename}";
+                    command += $" --script-param tags={string.Join(',', tags)}";
+                    if(removeTagsCheckbox.Checked)
                     {
-                        string command = $"-b --script-param filename={filename} --script {removeScriptPath}";
-                        ProcessCommand(command);
+                        command += $" --script-param clean={removeTagsCheckbox.Checked}";
                     }
-
-                    string getFrameCommand = $"-b --script-param filename={filename} --script {frameCountScriptPath}";
-                    int frameCount = int.Parse(ProcessCommand(getFrameCommand));
-                    int tagCount = frameCount / tags.Length;
-
-                    for (int i = 0; i < tags.Length; i++)
-                    {
-                        int startFrame = i * tagCount + 1;
-                        int endFrame = (i + 1) * tagCount;
-                        string tag = tags[i];
-
-                        string command = $"-b";
-                        command += $" --script-param filename={filename}";
-                        command += $" --script-param tag={tag}";
-                        command += $" --script-param start={startFrame}";
-                        command += $" --script-param end={endFrame}";
-                        command += $" --script {addScriptPath}";
-                        ProcessCommand(command);
-                    }
+                    command += $" --script {scriptPath}";
+                    string output = ProcessCommand(command);
                 }
 
                 MessageBox.Show("Tags adicionadas com sucesso!", Application.ProductName);
