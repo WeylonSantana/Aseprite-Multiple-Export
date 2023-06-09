@@ -186,7 +186,8 @@ namespace Aseprite_Multiple_Export
 
                 if (EveryLayer)
                 {
-                    LayerList = GetLayers(filename);
+                    string command = $"-b --all-layers --list-layers {filename}\"";
+                    LayerList = ProcessCommand(command).Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
                 }
 
                 if (KeepOriginalFilename)
@@ -221,40 +222,6 @@ namespace Aseprite_Multiple_Export
             MessageBox.Show("The files have been exported!", "Successfully exported", MessageBoxButtons.OK);
         }
 
-        private string[] GetLayers(string filename)
-        {
-            string finalCommand = $"/C \"\"{Aseprite}\" -b --all-layers --list-layers {filename}\"";
-            process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.WorkingDirectory = FolderPath;
-            process.StartInfo.Arguments = finalCommand;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            string[] layers = output.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-            return layers;
-        }
-
-        private int GetFrameCount(string filename)
-        {
-            string scriptPath = Path.Combine(Application.StartupPath, "GetFrameCount.script.lua");
-            string command = $"-b --script-param filename={filename} --script {scriptPath}";
-            string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
-
-            process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.WorkingDirectory = FolderPath;
-            process.StartInfo.Arguments = finalCommand;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return int.Parse(output);
-        }
-
         private void Export(string filename, string outputName, string layer = null)
         {
             string command = "-b";
@@ -284,13 +251,7 @@ namespace Aseprite_Multiple_Export
                 command += $" --data {SheetScale}x/{outputName}.json";
             }
 
-            string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
-            process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.WorkingDirectory = FolderPath;
-            process.StartInfo.Arguments = finalCommand;
-            process.Start();
+            ProcessCommand(command);
 
             lstExportedItems.Items.Add(outputName);
         }
@@ -366,14 +327,7 @@ namespace Aseprite_Multiple_Export
                     }
 
                     string command = $"-b --script-param filename={filename} --script-param frames={uniqueFrames} --script {scriptPath}";
-                    string finalCommand = $"/C \"\"{Aseprite}\" {command}\"";
-
-                    process = new Process();
-                    process.StartInfo.FileName = "cmd.exe";
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.WorkingDirectory = FolderPath;
-                    process.StartInfo.Arguments = finalCommand;
-                    process.Start();
+                    ProcessCommand(command);
                 }
 
                 MessageBox.Show("Frames removidos com sucesso!", Application.ProductName);
@@ -444,6 +398,7 @@ namespace Aseprite_Multiple_Export
 
                 string addScriptPath = Path.Combine(Application.StartupPath, "AddTag.script.lua");
                 string removeScriptPath = Path.Combine(Application.StartupPath, "CleanTags.script.lua");
+                string frameCountScriptPath = Path.Combine(Application.StartupPath, "GetFrameCount.script.lua");
 
                 foreach (var file in FileList)
                 {
@@ -456,7 +411,8 @@ namespace Aseprite_Multiple_Export
                         ProcessCommand(command);
                     }
 
-                    int frameCount = GetFrameCount(filename);
+                    string getFrameCommand = $"-b --script-param filename={filename} --script {frameCountScriptPath}";
+                    int frameCount = int.Parse(ProcessCommand(getFrameCommand));
                     int tagCount = frameCount / tags.Length;
 
                     for (int i = 0; i < tags.Length; i++)
