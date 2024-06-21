@@ -8,11 +8,16 @@ interface AppState {
   // Config State
   keepConfig: boolean;
   fileListPath: string;
+  exportType: ExportTypes;
 
   // Local State
   fileList?: FileEntry[];
   selectedFile?: FileEntry;
   loading?: boolean;
+}
+
+enum ExportTypes {
+  EveryFrame,
 }
 
 export default class App extends Component<any, AppState> {
@@ -21,6 +26,7 @@ export default class App extends Component<any, AppState> {
     this.state = {
       keepConfig: false,
       fileListPath: '',
+      exportType: ExportTypes.EveryFrame,
     };
 
     this.checkForAseprite = this.checkForAseprite.bind(this);
@@ -43,6 +49,7 @@ export default class App extends Component<any, AppState> {
       this.setState({
         keepConfig: state?.keepConfig ?? false,
         fileListPath: state?.fileListPath ?? '',
+        exportType: state?.exportType ?? ExportTypes.EveryFrame,
       });
 
       if (state?.fileListPath && (await exists(state.fileListPath))) {
@@ -105,6 +112,7 @@ export default class App extends Component<any, AppState> {
             {
               keepConfig: true,
               fileListPath: this.state.fileListPath,
+              exportType: this.state.exportType,
             },
             undefined,
             2
@@ -143,14 +151,19 @@ export default class App extends Component<any, AppState> {
   }
 
   async handleExport() {
-    const { fileListPath, selectedFile } = this.state;
+    const { fileListPath, selectedFile, exportType } = this.state;
     if (!selectedFile) {
       await dialog.message('Please select a file to export.', { type: 'error', title: 'Aseprite Multiple Export - No file selected!' });
       return;
     }
 
+    const exportTypesArgs = [
+      // export every frame as a separate file
+      ['-b', selectedFile.path, '--save-as', `${this.getAsepriteOutputName()}`],
+    ];
+
     try {
-      const command = new Command('Aseprite', ['-b', selectedFile.path, '--save-as', `${this.getAsepriteOutputName()}`], {
+      const command = new Command('Aseprite', exportTypesArgs[exportType], {
         cwd: fileListPath,
       });
       command.stdout.on('data', (data) => console.log(data));
@@ -185,7 +198,7 @@ export default class App extends Component<any, AppState> {
   }
 
   render() {
-    const { keepConfig, fileListPath, selectedFile, loading } = this.state;
+    const { keepConfig, fileListPath, selectedFile, loading, exportType } = this.state;
 
     return (
       <div className='overflow-hidden'>
@@ -233,6 +246,22 @@ export default class App extends Component<any, AppState> {
             </table>
           </div>
         )}
+
+        {/* Export Options */}
+        <div className='flex justify-start'>
+          <div className='flex items-center justify-center gap-2 p-2 mt-2 ml-4'>
+            <input
+              id='every-frame'
+              type='radio'
+              className='radio'
+              checked={exportType === ExportTypes.EveryFrame}
+              onChange={() => {
+                this.updateConfig('exportType', ExportTypes.EveryFrame);
+              }}
+            />
+            <label htmlFor='every-frame'>Every Frame?</label>
+          </div>
+        </div>
 
         {/* Aseprite Button Export */}
         <button className='absolute btn btn-error bottom-4 right-4' onClick={this.handleExport}>
