@@ -1,10 +1,13 @@
 import { Component } from 'react';
 import { open } from '@tauri-apps/api/dialog';
-import { exists, readTextFile, writeTextFile, BaseDirectory, createDir } from '@tauri-apps/api/fs';
+import { exists, readTextFile, writeTextFile, BaseDirectory, createDir, readDir, FileEntry } from '@tauri-apps/api/fs';
 
 interface AppState {
   keepConfig: boolean;
   asepritePath: string;
+  fileListPath: string;
+  fileList?: FileEntry[];
+  selectedFile?: FileEntry;
 }
 
 export default class App extends Component<any, AppState> {
@@ -13,10 +16,13 @@ export default class App extends Component<any, AppState> {
     this.state = {
       keepConfig: false,
       asepritePath: '',
+      fileListPath: '',
     };
 
     this.updateConfig = this.updateConfig.bind(this);
     this.searchAsepritePath = this.searchAsepritePath.bind(this);
+    this.searchAsepriteFiles = this.searchAsepriteFiles.bind(this);
+    this.loadFileList = this.loadFileList.bind(this);
   }
 
   async componentDidMount() {
@@ -30,7 +36,12 @@ export default class App extends Component<any, AppState> {
       this.setState({
         keepConfig: state?.keepConfig ?? false,
         asepritePath: state?.asepritePath ?? '',
+        fileListPath: state?.fileListPath ?? '',
       });
+
+      if (state?.fileListPath && (await exists(state.fileListPath))) {
+        this.loadFileList(state.fileListPath);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -68,14 +79,35 @@ export default class App extends Component<any, AppState> {
     }
   }
 
+  async searchAsepriteFiles() {
+    try {
+      var dir = await open({ multiple: false, directory: true });
+      if (!dir || Array.isArray(dir)) return;
+      this.updateConfig('fileListPath', dir);
+      this.loadFileList(dir);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async loadFileList(path: string) {
+    try {
+      var fileList = (await readDir(path)).filter((f) => f.name?.endsWith('.ase') || f.name?.endsWith('.aseprite'));
+      if (!fileList?.length) return;
+      this.setState({ fileList });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   render() {
-    const { keepConfig, asepritePath } = this.state;
+    const { keepConfig, asepritePath, fileListPath, selectedFile } = this.state;
 
     return (
       <div>
         <div className='flex gap-2 mt-6 ml-4 items-center absolute right-4 top-0'>
           <input id='keep-config' type='checkbox' className='checkbox' checked={keepConfig} onChange={() => this.updateConfig('keepConfig', !keepConfig)} />
-          <label htmlFor='keep-config'>Manter Configurações?</label>
+          <label htmlFor='keep-config'>Keep Changes?</label>
         </div>
 
         {/* Aseprite Path Search */}
@@ -83,8 +115,39 @@ export default class App extends Component<any, AppState> {
           <label className='label'>Aseprite Path:</label>
           <input className='input input-sm w-[700px]' type='text' value={asepritePath} disabled />
           <button className='btn btn-sm btn-success' onClick={this.searchAsepritePath}>
-            Procurar
+            Search Aseprite.exe
           </button>
+        </div>
+
+        {/* Aseprite Path Filelist Search */}
+        <div className='flex gap-2 ml-4 items-center'>
+          <label className='label'>Ase Files Path:</label>
+          <input className='input input-sm w-[700px]' type='text' value={fileListPath} disabled />
+          <button className='btn btn-sm btn-success' onClick={this.searchAsepriteFiles}>
+            Search .ase/.aseprite files
+          </button>
+        </div>
+
+        {/* Aseprite File List */}
+        <div className='max-w-[800px] max-h-[300px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-scroll'>
+          <table className='table w-full'>
+            <thead>
+              <tr>
+                <th className='text-base'>File Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {this.state.fileList?.map((file, index) => (
+                <tr key={index} className={`${selectedFile?.name === file.name ? 'bg-base-200' : ''}`}>
+                  <td
+                    className='cursor-pointer select-none'
+                    onClick={() => this.setState({ selectedFile: selectedFile?.name === file.name ? undefined : file })}>
+                    {file.name}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
