@@ -9,6 +9,9 @@ interface AppState {
   keepConfig: boolean;
   fileListPath: string;
   exportType: ExportTypes;
+  options: {
+    exportJson: boolean;
+  };
 
   // Local State
   fileList?: FileEntry[];
@@ -18,6 +21,7 @@ interface AppState {
 
 enum ExportTypes {
   EveryFrame,
+  SheetExport,
 }
 
 export default class App extends Component<any, AppState> {
@@ -27,6 +31,9 @@ export default class App extends Component<any, AppState> {
       keepConfig: false,
       fileListPath: '',
       exportType: ExportTypes.EveryFrame,
+      options: {
+        exportJson: false,
+      },
     };
 
     this.checkForAseprite = this.checkForAseprite.bind(this);
@@ -50,6 +57,7 @@ export default class App extends Component<any, AppState> {
         keepConfig: state?.keepConfig ?? false,
         fileListPath: state?.fileListPath ?? '',
         exportType: state?.exportType ?? ExportTypes.EveryFrame,
+        options: state?.options ?? { exportJson: false },
       });
 
       if (state?.fileListPath && (await exists(state.fileListPath))) {
@@ -113,6 +121,7 @@ export default class App extends Component<any, AppState> {
               keepConfig: true,
               fileListPath: this.state.fileListPath,
               exportType: this.state.exportType,
+              options: this.state.options,
             },
             undefined,
             2
@@ -151,16 +160,24 @@ export default class App extends Component<any, AppState> {
   }
 
   async handleExport() {
-    const { fileListPath, selectedFile, exportType } = this.state;
+    const { fileListPath, selectedFile, exportType, options } = this.state;
     if (!selectedFile) {
       await dialog.message('Please select a file to export.', { type: 'error', title: 'Aseprite Multiple Export - No file selected!' });
       return;
     }
 
+    const outputName = this.getAsepriteOutputName();
+
     const exportTypesArgs = [
       // export every frame as a separate file
-      ['-b', selectedFile.path, '--save-as', `${this.getAsepriteOutputName()}`],
+      ['-b', selectedFile.path, '--save-as', `${outputName}`],
+      // export sheet
+      ['-b', selectedFile.path, '--sheet', `${outputName}`],
     ];
+
+    if (exportType === ExportTypes.SheetExport && options.exportJson) {
+      exportTypesArgs[exportType].push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array');
+    }
 
     try {
       const command = new Command('Aseprite', exportTypesArgs[exportType], {
@@ -198,7 +215,8 @@ export default class App extends Component<any, AppState> {
   }
 
   render() {
-    const { keepConfig, fileListPath, selectedFile, loading, exportType } = this.state;
+    const { keepConfig, fileListPath, selectedFile, loading, exportType, options } = this.state;
+    const { exportJson } = options;
 
     return (
       <div className='overflow-hidden'>
@@ -261,7 +279,34 @@ export default class App extends Component<any, AppState> {
             />
             <label htmlFor='every-frame'>Every Frame?</label>
           </div>
+
+          <div className='flex items-center justify-center gap-2 p-2 mt-2 ml-4'>
+            <input
+              id='every-frame'
+              type='radio'
+              className='radio'
+              checked={exportType === ExportTypes.SheetExport}
+              onChange={() => {
+                this.updateConfig('exportType', ExportTypes.SheetExport);
+              }}
+            />
+            <label htmlFor='every-frame'>Sheet Export?</label>
+          </div>
         </div>
+
+        {/* Export Options */}
+        {exportType === ExportTypes.SheetExport && (
+          <div className='flex items-center gap-2 mt-2 ml-6'>
+            <input
+              id='export-json'
+              type='checkbox'
+              className='checkbox'
+              checked={exportJson}
+              onChange={() => this.updateConfig('options', { exportJson: !exportJson })}
+            />
+            <label htmlFor='export-json'>Export JSON?</label>
+          </div>
+        )}
 
         {/* Aseprite Button Export */}
         <button className='absolute btn btn-error bottom-4 right-4' onClick={this.handleExport}>
