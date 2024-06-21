@@ -12,6 +12,7 @@ interface AppState {
   // Local State
   fileList?: FileEntry[];
   selectedFile?: FileEntry;
+  loading?: boolean;
 }
 
 export default class App extends Component<any, AppState> {
@@ -102,7 +103,7 @@ export default class App extends Component<any, AppState> {
           'config.json',
           JSON.stringify(
             {
-              keepConfig: this.state.keepConfig,
+              keepConfig: true,
               fileListPath: this.state.fileListPath,
             },
             undefined,
@@ -142,18 +143,59 @@ export default class App extends Component<any, AppState> {
   }
 
   async handleExport() {
-    const { selectedFile } = this.state;
+    const { fileListPath, selectedFile } = this.state;
     if (!selectedFile) {
       await dialog.message('Please select a file to export.', { type: 'error', title: 'Aseprite Multiple Export - No file selected!' });
       return;
     }
+
+    try {
+      const command = new Command('Aseprite', ['-b', selectedFile.path, '--save-as', `${this.getAsepriteOutputName()}`], {
+        cwd: fileListPath,
+      });
+      command.stdout.on('data', (data) => console.log(data));
+      command.on('close', () => {
+        dialog.message('Exported successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
+        this.setState({ loading: false });
+      });
+
+      this.setState({ loading: true });
+      await command.spawn();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  getAsepriteOutputName() {
+    const { selectedFile } = this.state;
+    if (!selectedFile) return 'ERR';
+
+    if (selectedFile.name) {
+      const ext = selectedFile.name.split('.').pop();
+      return selectedFile.name.replace(`.${ext}`, '.png');
+    }
+
+    const fileName = selectedFile.path.split('\\').pop();
+    if (fileName && fileName.length) {
+      const ext = fileName.split('.').pop();
+      return fileName.replace(`.${ext}`, '.png');
+    }
+
+    return 'ERR';
   }
 
   render() {
-    const { keepConfig, fileListPath, selectedFile } = this.state;
+    const { keepConfig, fileListPath, selectedFile, loading } = this.state;
 
     return (
-      <div>
+      <div className='overflow-hidden'>
+        {loading && (
+          <div className='absolute flex gap-1 items-center justify-center z-10 w-[100vw] h-[100vh] bg-[rgba(0,0,0,0.5)]'>
+            <label className='text-2xl label'>Exporting</label>
+            <div className='mt-4 loading loading-dots'></div>
+          </div>
+        )}
+
         <div className='absolute top-0 flex items-center gap-2 mt-6 ml-4 right-4'>
           <input id='keep-config' type='checkbox' className='checkbox' checked={keepConfig} onChange={() => this.updateConfig('keepConfig', !keepConfig)} />
           <label htmlFor='keep-config'>Keep Changes?</label>
@@ -194,6 +236,7 @@ export default class App extends Component<any, AppState> {
 
         {/* Aseprite Button Export */}
         <button className='absolute btn btn-error bottom-4 right-4' onClick={this.handleExport}>
+          {loading && <span className='loading loading-spinner'></span>}
           Export!
         </button>
       </div>
