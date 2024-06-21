@@ -198,7 +198,7 @@ export default class App extends Component<any, AppState> {
       if (sheetType === SheetTypes.Columns && sheetRows) args.push('--sheet-rows', sheetRows.toString());
       if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
 
-      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array');
+      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-tags');
     }
 
     console.log('Exporting with args:', args.join(' '));
