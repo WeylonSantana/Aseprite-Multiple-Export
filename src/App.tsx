@@ -11,6 +11,9 @@ interface AppState {
   exportType: ExportTypes;
   options: {
     exportJson: boolean;
+    sheetType: SheetTypes;
+    sheetColumns?: number;
+    sheetRows?: number;
   };
 
   // Local State
@@ -24,6 +27,14 @@ enum ExportTypes {
   SheetExport,
 }
 
+enum SheetTypes {
+  Horizontal,
+  Vertical,
+  Rows,
+  Columns,
+  Packed,
+}
+
 export default class App extends Component<any, AppState> {
   constructor(props: any) {
     super(props);
@@ -33,6 +44,7 @@ export default class App extends Component<any, AppState> {
       exportType: ExportTypes.EveryFrame,
       options: {
         exportJson: false,
+        sheetType: SheetTypes.Horizontal,
       },
     };
 
@@ -41,31 +53,6 @@ export default class App extends Component<any, AppState> {
     this.searchAsepriteFiles = this.searchAsepriteFiles.bind(this);
     this.loadFileList = this.loadFileList.bind(this);
     this.handleExport = this.handleExport.bind(this);
-  }
-
-  async componentDidMount() {
-    try {
-      if (!(await this.checkForAseprite())) return;
-
-      if (!(await exists('', { dir: BaseDirectory.AppConfig }))) {
-        await createDir('', { dir: BaseDirectory.AppConfig });
-        await writeTextFile('config.json', JSON.stringify({}), { dir: BaseDirectory.AppConfig });
-      }
-
-      var state = JSON.parse(await readTextFile('config.json', { dir: BaseDirectory.AppConfig }));
-      this.setState({
-        keepConfig: state?.keepConfig ?? false,
-        fileListPath: state?.fileListPath ?? '',
-        exportType: state?.exportType ?? ExportTypes.EveryFrame,
-        options: state?.options ?? { exportJson: false },
-      });
-
-      if (state?.fileListPath && (await exists(state.fileListPath))) {
-        this.loadFileList(state.fileListPath);
-      }
-    } catch (error) {
-      console.error(error);
-    }
   }
 
   async checkForAseprite() {
@@ -105,34 +92,62 @@ export default class App extends Component<any, AppState> {
     }
   }
 
+  async componentDidMount() {
+    try {
+      if (!(await this.checkForAseprite())) return;
+
+      if (!(await exists('', { dir: BaseDirectory.AppConfig }))) {
+        await createDir('', { dir: BaseDirectory.AppConfig });
+        await writeTextFile('config.json', JSON.stringify({}), { dir: BaseDirectory.AppConfig });
+      }
+
+      var state = JSON.parse(await readTextFile('config.json', { dir: BaseDirectory.AppConfig }));
+      this.setState({
+        keepConfig: state?.keepConfig ?? false,
+        fileListPath: state?.fileListPath ?? '',
+        exportType: state?.exportType ?? ExportTypes.EveryFrame,
+        options: state?.options ?? { exportJson: false, sheetType: SheetTypes.Horizontal },
+      });
+
+      if (state?.fileListPath && (await exists(state.fileListPath))) {
+        this.loadFileList(state.fileListPath);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   async updateConfig<K extends keyof AppState>(key: K, value: AppState[K]) {
     try {
       // Using a type-safe way to update the state
-      this.setState((prevState: AppState) => ({
-        ...prevState,
-        [key]: value,
-      }));
+      this.setState(
+        (prevState: AppState) => ({
+          ...prevState,
+          [key]: value,
+        }),
+        async () => {
+          if (this.state.keepConfig) {
+            await writeTextFile(
+              'config.json',
+              JSON.stringify(
+                {
+                  keepConfig: true,
+                  fileListPath: this.state.fileListPath,
+                  exportType: this.state.exportType,
+                  options: this.state.options,
+                },
+                undefined,
+                2
+              ),
+              { dir: BaseDirectory.AppConfig }
+            );
+          }
 
-      if (this.state.keepConfig || (key === 'keepConfig' && value)) {
-        await writeTextFile(
-          'config.json',
-          JSON.stringify(
-            {
-              keepConfig: true,
-              fileListPath: this.state.fileListPath,
-              exportType: this.state.exportType,
-              options: this.state.options,
-            },
-            undefined,
-            2
-          ),
-          { dir: BaseDirectory.AppConfig }
-        );
-      }
-
-      if (!this.state.keepConfig || (key === 'keepConfig' && !value)) {
-        await writeTextFile('config.json', JSON.stringify({}), { dir: BaseDirectory.AppConfig });
-      }
+          if (!this.state.keepConfig || (key === 'keepConfig' && !value)) {
+            await writeTextFile('config.json', JSON.stringify({}), { dir: BaseDirectory.AppConfig });
+          }
+        }
+      );
     } catch (error) {
       console.error(error);
     }
@@ -153,7 +168,7 @@ export default class App extends Component<any, AppState> {
     try {
       var fileList = (await readDir(path)).filter((f) => f.name?.endsWith('.ase') || f.name?.endsWith('.aseprite'));
       if (!fileList?.length) return;
-      this.setState({ fileList });
+      this.setState({ fileList, selectedFile: fileList[0] });
     } catch (error) {
       console.error(error);
     }
@@ -161,6 +176,7 @@ export default class App extends Component<any, AppState> {
 
   async handleExport() {
     const { fileListPath, selectedFile, exportType, options } = this.state;
+    const { exportJson, sheetType, sheetColumns, sheetRows } = options;
     if (!selectedFile) {
       await dialog.message('Please select a file to export.', { type: 'error', title: 'Aseprite Multiple Export - No file selected!' });
       return;
@@ -175,14 +191,20 @@ export default class App extends Component<any, AppState> {
       ['-b', selectedFile.path, '--sheet', `${outputName}`],
     ];
 
-    if (exportType === ExportTypes.SheetExport && options.exportJson) {
-      exportTypesArgs[exportType].push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array');
+    const args = exportTypesArgs[exportType];
+
+    if (exportType === ExportTypes.SheetExport) {
+      args.push('--sheet-type', SheetTypes[sheetType].toLowerCase());
+      if (sheetType === SheetTypes.Columns && sheetRows) args.push('--sheet-rows', sheetRows.toString());
+      if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
+
+      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array');
     }
 
+    console.log('Exporting with args:', args.join(' '));
+
     try {
-      const command = new Command('Aseprite', exportTypesArgs[exportType], {
-        cwd: fileListPath,
-      });
+      const command = new Command('Aseprite', args, { cwd: fileListPath });
       command.stdout.on('data', (data) => console.log(data));
       command.on('close', () => {
         dialog.message('Exported successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
@@ -216,7 +238,7 @@ export default class App extends Component<any, AppState> {
 
   render() {
     const { keepConfig, fileListPath, selectedFile, loading, exportType, options } = this.state;
-    const { exportJson } = options;
+    const { exportJson, sheetType } = options;
 
     return (
       <div className='overflow-hidden'>
@@ -296,15 +318,65 @@ export default class App extends Component<any, AppState> {
 
         {/* Export Options */}
         {exportType === ExportTypes.SheetExport && (
-          <div className='flex items-center gap-2 mt-2 ml-6'>
-            <input
-              id='export-json'
-              type='checkbox'
-              className='checkbox'
-              checked={exportJson}
-              onChange={() => this.updateConfig('options', { exportJson: !exportJson })}
-            />
-            <label htmlFor='export-json'>Export JSON?</label>
+          <div className='flex items-center gap-2 ml-4 p-2'>
+            <div className='flex items-center gap-2'>
+              <input
+                id='export-json'
+                type='checkbox'
+                className='checkbox'
+                checked={exportJson}
+                onChange={() => this.updateConfig('options', { ...options, exportJson: !exportJson })}
+              />
+              <label htmlFor='export-json'>Export JSON?</label>
+            </div>
+
+            <div className='flex items-center justify-center gap-2'>
+              <label htmlFor='sheet-type' className='label text-nowrap'>
+                Sheet Type:
+              </label>
+              <select
+                name='sheet-type'
+                id='sheet-type'
+                className='select select-bordered select-sm w-full max-w-xs'
+                value={options.sheetType}
+                onChange={(e) => this.updateConfig('options', { ...options, sheetType: parseInt(e.target.value) })}>
+                <option value={SheetTypes.Horizontal}>Horizontal</option>
+                <option value={SheetTypes.Vertical}>Vertical</option>
+                <option value={SheetTypes.Rows}>Rows</option>
+                <option value={SheetTypes.Columns}>Columns</option>
+                <option value={SheetTypes.Packed}>Packed</option>
+              </select>
+            </div>
+
+            {sheetType === SheetTypes.Columns && (
+              <div className='flex items-center gap-2'>
+                <label htmlFor='sheet-type' className='label text-nowrap'>
+                  Sheet Columns:
+                </label>
+                <input
+                  type='number'
+                  className='input input-sm input-bordered'
+                  min={1}
+                  value={options.sheetRows ?? 0}
+                  onChange={(e) => this.updateConfig('options', { ...options, sheetRows: parseInt(e.target.value) })}
+                />
+              </div>
+            )}
+
+            {sheetType === SheetTypes.Rows && (
+              <div className='flex items-center gap-2'>
+                <label htmlFor='sheet-type' className='label text-nowrap'>
+                  Sheet Rows:
+                </label>
+                <input
+                  type='number'
+                  className='input input-sm input-bordered'
+                  min={1}
+                  value={options.sheetColumns ?? 0}
+                  onChange={(e) => this.updateConfig('options', { ...options, sheetColumns: parseInt(e.target.value) })}
+                />
+              </div>
+            )}
           </div>
         )}
 
