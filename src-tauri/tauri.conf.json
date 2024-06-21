@@ -15,6 +15,16 @@
       "fs": {
         "all": true,
         "scope": ["**"]
+      },
+      "shell": {
+        "all": true,
+        "scope": [
+          {
+            "name": "Aseprite",
+            "cmd": "Aseprite",
+            "args": true
+          }
+        ]
       }
     },
     "windows": [
