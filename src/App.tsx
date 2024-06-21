@@ -18,8 +18,11 @@ interface AppState {
 
   // Local State
   fileList?: FileEntry[];
+  layerList?: string[];
   selectedFile?: FileEntry;
-  loading?: boolean;
+  selectedLayer?: string;
+  exportLoading?: boolean;
+  layersLoading?: boolean;
 }
 
 enum ExportTypes {
@@ -52,6 +55,7 @@ export default class App extends Component<any, AppState> {
     this.updateConfig = this.updateConfig.bind(this);
     this.searchAsepriteFiles = this.searchAsepriteFiles.bind(this);
     this.loadFileList = this.loadFileList.bind(this);
+    this.loadLayerList = this.loadLayerList.bind(this);
     this.handleExport = this.handleExport.bind(this);
   }
 
@@ -169,6 +173,21 @@ export default class App extends Component<any, AppState> {
       var fileList = (await readDir(path)).filter((f) => f.name?.endsWith('.ase') || f.name?.endsWith('.aseprite'));
       if (!fileList?.length) return;
       this.setState({ fileList, selectedFile: fileList[0] });
+
+      // Load Layer List
+      await this.loadLayerList(fileList[0]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async loadLayerList(file: FileEntry) {
+    try {
+      this.setState({ layerList: [], layersLoading: true, selectedLayer: undefined });
+      const command = new Command('Aseprite', ['-b', '--list-layers', file.path]);
+      command.stdout.on('data', (data) => this.state.layerList?.push(data));
+      command.on('close', () => this.setState({ layersLoading: false }));
+      await command.spawn();
     } catch (error) {
       console.error(error);
     }
@@ -198,7 +217,7 @@ export default class App extends Component<any, AppState> {
       if (sheetType === SheetTypes.Columns && sheetRows) args.push('--sheet-rows', sheetRows.toString());
       if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
 
-      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-tags');
+      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-layers', '--list-tags');
     }
 
     console.log('Exporting with args:', args.join(' '));
@@ -208,10 +227,10 @@ export default class App extends Component<any, AppState> {
       command.stdout.on('data', (data) => console.log(data));
       command.on('close', () => {
         dialog.message('Exported successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
-        this.setState({ loading: false });
+        this.setState({ exportLoading: false });
       });
 
-      this.setState({ loading: true });
+      this.setState({ exportLoading: true });
       await command.spawn();
     } catch (error) {
       console.error(error);
@@ -237,12 +256,14 @@ export default class App extends Component<any, AppState> {
   }
 
   render() {
-    const { keepConfig, fileListPath, selectedFile, loading, exportType, options } = this.state;
+    const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
+    const { selectedFile, selectedLayer } = this.state;
+    const { exportLoading, layersLoading } = this.state;
     const { exportJson, sheetType } = options;
 
     return (
       <div className='overflow-hidden'>
-        {loading && (
+        {exportLoading && (
           <div className='absolute flex gap-1 items-center justify-center z-10 w-[100vw] h-[100vh] bg-[rgba(0,0,0,0.5)]'>
             <label className='text-2xl label'>Exporting</label>
             <div className='mt-4 loading loading-dots'></div>
@@ -264,26 +285,74 @@ export default class App extends Component<any, AppState> {
         </div>
 
         {/* Aseprite File List */}
-        {this.state.fileList?.length && (
-          <div className='max-w-[800px] max-h-[300px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
-            <table className='table w-full'>
-              <thead>
-                <tr>
-                  <th className='text-base'>File Name</th>
-                </tr>
-              </thead>
-              <tbody>
-                {this.state.fileList?.map((file, index) => (
-                  <tr key={index} className={`${selectedFile?.name === file.name ? 'bg-base-200' : ''}`}>
-                    <td
-                      className='cursor-pointer select-none'
-                      onClick={() => this.setState({ selectedFile: selectedFile?.name === file.name ? undefined : file })}>
-                      {file.name}
-                    </td>
+        {fileList?.length && (
+          // File List
+          <div className='flex gap-2'>
+            <div className='min-w-[800px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
+              <table className='table w-full'>
+                <thead>
+                  <tr>
+                    <th className='text-base'>File Name</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {fileList?.map((file, index) => (
+                    <tr key={index} className={`${selectedFile?.name === file.name ? 'bg-base-200' : ''}`}>
+                      <td
+                        className='cursor-pointer select-none'
+                        onClick={() => {
+                          this.setState(
+                            (prevState) => ({ ...prevState, selectedFile: selectedFile?.name === file.name ? undefined : file }),
+                            async () => {
+                              try {
+                                if (!file?.name) return;
+                                if (file.name !== selectedFile?.name) {
+                                  await this.loadLayerList(file);
+                                }
+                              } catch (error) {
+                                console.error(error);
+                              }
+                            }
+                          );
+                        }}>
+                        {file.name}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Layers List */}
+            <div className='min-w-[300px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
+              {layersLoading && (
+                <div className='flex items-center justify-center h-full'>
+                  Loading Layers
+                  <span className='ml-2 loading loading-dots'></span>
+                </div>
+              )}
+
+              {!layersLoading && (
+                <table className='table w-full'>
+                  <thead>
+                    <tr>
+                      <th className='text-base'>Layer List</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {layerList?.map((layer, index) => (
+                      <tr key={index} className={`${selectedLayer === layer ? 'bg-base-200' : ''}`}>
+                        <td
+                          className='cursor-pointer select-none'
+                          onClick={() => this.setState({ selectedLayer: selectedLayer === layer ? undefined : layer })}>
+                          {layer}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         )}
 
@@ -382,7 +451,7 @@ export default class App extends Component<any, AppState> {
 
         {/* Aseprite Button Export */}
         <button className='absolute btn btn-error bottom-4 right-4' onClick={this.handleExport}>
-          {loading && <span className='loading loading-spinner'></span>}
+          {exportLoading && <span className='loading loading-spinner'></span>}
           Export!
         </button>
       </div>
