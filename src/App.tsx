@@ -9,6 +9,7 @@ interface AppState {
   keepConfig: boolean;
   fileListPath: string;
   exportType: ExportTypes;
+  scale: number;
   options: {
     exportJson: boolean;
     sheetType: SheetTypes;
@@ -45,6 +46,7 @@ export default class App extends Component<any, AppState> {
       keepConfig: false,
       fileListPath: '',
       exportType: ExportTypes.EveryFrame,
+      scale: 1,
       options: {
         exportJson: false,
         sheetType: SheetTypes.Horizontal,
@@ -110,6 +112,7 @@ export default class App extends Component<any, AppState> {
         keepConfig: state?.keepConfig ?? false,
         fileListPath: state?.fileListPath ?? '',
         exportType: state?.exportType ?? ExportTypes.EveryFrame,
+        scale: state?.scale ?? 1,
         options: state?.options ?? { exportJson: false, sheetType: SheetTypes.Horizontal },
       });
 
@@ -138,6 +141,7 @@ export default class App extends Component<any, AppState> {
                   keepConfig: true,
                   fileListPath: this.state.fileListPath,
                   exportType: this.state.exportType,
+                  scale: this.state.scale,
                   options: this.state.options,
                 },
                 undefined,
@@ -215,7 +219,7 @@ export default class App extends Component<any, AppState> {
   }
 
   async exportFile(index: number) {
-    const { fileListPath, selectedFiles, selectedLayers, exportType, options } = this.state;
+    const { fileListPath, selectedFiles, selectedLayers, exportType, scale, options } = this.state;
     const { exportJson, sheetType, sheetColumns, sheetRows } = options;
     if (!selectedFiles?.length) return;
 
@@ -223,7 +227,7 @@ export default class App extends Component<any, AppState> {
     if (!file?.name) return;
     const outputName = this.getAsepriteOutputName(index);
 
-    const exportTypesArgs = [
+    const exportTypesArgs: string[][] = [
       // export every frame as a separate file
       ['-b', file.name, '--save-as', `${outputName}`],
       // export sheet
@@ -244,6 +248,7 @@ export default class App extends Component<any, AppState> {
       if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
 
       if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-layers', '--list-tags');
+      args.push('--scale', `${scale}`);
     }
 
     console.log('Exporting with args:', args.join(' '));
@@ -258,19 +263,19 @@ export default class App extends Component<any, AppState> {
   }
 
   getAsepriteOutputName(index: number) {
-    const { selectedFiles } = this.state;
+    const { selectedFiles, scale } = this.state;
     if (!selectedFiles?.length) return 'ERR';
 
     const selectedFile = selectedFiles[index];
     if (selectedFile.name) {
       const ext = selectedFile.name.split('.').pop();
-      return selectedFile.name.replace(`.${ext}`, '.png');
+      return `${scale}x/${selectedFile.name.replace(`.${ext}`, '.png')}`;
     }
 
     const fileName = selectedFile.path.split('\\').pop();
     if (fileName && fileName.length) {
       const ext = fileName.split('.').pop();
-      return fileName.replace(`.${ext}`, '.png');
+      return `${scale}x/${fileName.replace(`.${ext}`, '.png')}`;
     }
 
     return 'ERR';
@@ -496,8 +501,21 @@ export default class App extends Component<any, AppState> {
           </div>
         )}
 
+        <div className='flex items-center justify-center absolute bottom-4 right-24 gap-2'>
+          <label htmlFor='scale'>Scale:</label>
+          <input
+            type='number'
+            id='scale'
+            className='input input-sm input-bordered  w-[75px]'
+            value={this.state.scale}
+            min={1}
+            max={20}
+            onChange={(e) => this.updateConfig('scale', parseInt(e.target.value))}
+          />
+        </div>
+
         {/* Aseprite Button Export */}
-        <button className='absolute btn btn-error bottom-4 right-4' onClick={this.handleExport}>
+        <button className='absolute btn btn-sm btn-error bottom-4 right-4' onClick={this.handleExport}>
           {exportLoading && <span className='loading loading-spinner'></span>}
           Export!
         </button>
