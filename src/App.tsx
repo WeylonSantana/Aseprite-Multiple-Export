@@ -215,21 +215,28 @@ export default class App extends Component<any, AppState> {
   }
 
   async exportFile(index: number) {
-    const { fileListPath, selectedFiles, exportType, options } = this.state;
+    const { fileListPath, selectedFiles, selectedLayers, exportType, options } = this.state;
     const { exportJson, sheetType, sheetColumns, sheetRows } = options;
     if (!selectedFiles?.length) return;
 
     const file = selectedFiles[index];
+    if (!file?.name) return;
     const outputName = this.getAsepriteOutputName(index);
 
     const exportTypesArgs = [
       // export every frame as a separate file
-      ['-b', file.path, '--save-as', `${outputName}`],
+      ['-b', file.name, '--save-as', `${outputName}`],
       // export sheet
-      ['-b', file.path, '--sheet', `${outputName}`],
+      ['-b', file.name, '--sheet', `${outputName}`],
     ];
 
     const args = exportTypesArgs[exportType];
+
+    selectedLayers?.forEach((layer) => {
+      var layerArg = ['--layer', layer.split(' - ')[1].trim()];
+      // we need to insert the layer argument before the save-as or sheet argument
+      args.splice(1, 0, ...layerArg);
+    });
 
     if (exportType === ExportTypes.SheetExport) {
       args.push('--sheet-type', SheetTypes[sheetType].toLowerCase());
