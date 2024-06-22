@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import { open } from '@tauri-apps/api/dialog';
-import { exists, readTextFile, writeTextFile, BaseDirectory, createDir, readDir, FileEntry } from '@tauri-apps/api/fs';
+import { exists, readTextFile, writeTextFile, BaseDirectory, createDir, readDir, FileEntry, removeFile } from '@tauri-apps/api/fs';
 import { Command } from '@tauri-apps/api/shell';
 import { dialog, process } from '@tauri-apps/api';
 
@@ -16,6 +16,7 @@ interface AppState {
     sheetColumns?: number;
     sheetRows?: number;
     splitLayers?: boolean;
+    allLayers?: boolean;
   };
 
   // Local State
@@ -40,6 +41,20 @@ enum SheetTypes {
   Packed,
 }
 
+interface Layer {
+  name: string;
+  opacity?: number;
+  blendMode?: string;
+  group?: string;
+  color?: string;
+}
+
+interface LayerNode {
+  name: string;
+  fullPath: string;
+  children: LayerNode[];
+}
+
 export default class App extends Component<any, AppState> {
   constructor(props: any) {
     super(props);
@@ -59,6 +74,8 @@ export default class App extends Component<any, AppState> {
     this.searchAsepriteFiles = this.searchAsepriteFiles.bind(this);
     this.loadFileList = this.loadFileList.bind(this);
     this.loadLayerList = this.loadLayerList.bind(this);
+    this.buildLayerTree = this.buildLayerTree.bind(this);
+    this.formatLayerTree = this.formatLayerTree.bind(this);
     this.handleExport = this.handleExport.bind(this);
   }
 
@@ -189,19 +206,81 @@ export default class App extends Component<any, AppState> {
   async loadLayerList() {
     try {
       this.setState({ layerList: this.state.layerList ?? [], layersLoading: true, selectedLayers: undefined });
-      const layerList: string[] = [];
-
       if (this.state.selectedFiles?.length === 0) return this.setState({ layerList: [], layersLoading: false });
 
-      this.state.selectedFiles?.forEach(async (file) => {
-        const command = new Command('Aseprite', ['-b', '--list-layers', file.path]);
-        command.stdout.on('data', (data) => layerList.push(`${file?.name?.split('.')[0] ?? 'Err'} - ${data}`));
-        command.on('close', () => this.setState({ layerList: layerList.sort((a, b) => a.localeCompare(b)), layersLoading: false }));
-        await command.spawn();
+      this.state.selectedFiles?.forEach(async (file, index) => {
+        // first we need to create aseprite json and then read the layers from it
+        const outputName = this.getAsepriteOutputName(index);
+        const args = ['-b'];
+        if (this.state.options.allLayers) args.push('--all-layers');
+        args.push('--list-layers', file.path, '--data', outputName.replace('.png', '.json'), '--format', 'json-array');
+
+        try {
+          const command = new Command('Aseprite', args, { cwd: this.state.fileListPath });
+          command.on('close', async () => {
+            const asepriteJson = JSON.parse(await readTextFile(`${this.state.fileListPath}\\${outputName.replace('.png', '.json')}`));
+            //delete the json file
+            await removeFile(`${this.state.fileListPath}\\${outputName.replace('.png', '.json')}`);
+            var layersNodes = this.buildLayerTree(asepriteJson.meta.layers);
+            var layers = this.formatLayerTree(layersNodes);
+            this.setState({ layerList: layers, layersLoading: false });
+          });
+          await command.spawn();
+        } catch (error) {
+          console.error(error);
+        }
       });
     } catch (error) {
       console.error(error);
     }
+  }
+
+  buildLayerTree(layers: Layer[]) {
+    const layerMap: { [key: string]: LayerNode } = {};
+    const rootNodes: LayerNode[] = [];
+
+    layers.forEach((layer) => {
+      const node: LayerNode = {
+        name: layer.name,
+        fullPath: layer.name,
+        children: [],
+      };
+
+      layerMap[layer.name] = node;
+
+      if (layer.group) {
+        const parent = layerMap[layer.group];
+        if (parent) {
+          parent.children.push(node);
+        } else {
+          rootNodes.push(node);
+        }
+      } else {
+        rootNodes.push(node);
+      }
+    });
+
+    return rootNodes;
+  }
+
+  formatLayerTree(nodes: LayerNode[]) {
+    const lines: string[] = [];
+
+    // recursive function to format the layer tree, to show in the UI all the paths like 'parent/group/layer'
+    const traverse = (node: LayerNode, parentPath = '') => {
+      const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+
+      if (node.children.length === 0) {
+        // Only add to lines if it's not a group (i.e., it has no children)
+        lines.push(currentPath);
+      } else {
+        // Traverse children
+        node.children.forEach((child) => traverse(child, currentPath));
+      }
+    };
+
+    nodes.forEach((node) => traverse(node));
+    return lines.reverse();
   }
 
   async handleExport() {
@@ -221,7 +300,7 @@ export default class App extends Component<any, AppState> {
 
   async exportFile(index: number) {
     const { fileListPath, selectedFiles, selectedLayers, exportType, scale, options } = this.state;
-    const { exportJson, sheetType, sheetColumns, sheetRows, splitLayers } = options;
+    const { exportJson, sheetType, sheetColumns, sheetRows, splitLayers, allLayers } = options;
     if (!selectedFiles?.length) return;
 
     const file = selectedFiles[index];
@@ -238,7 +317,7 @@ export default class App extends Component<any, AppState> {
     const args = exportTypesArgs[exportType];
 
     selectedLayers?.forEach((layer) => {
-      var layerArg = ['--layer', layer.split(' - ')[1].trim()];
+      var layerArg = ['--layer', layer];
       // we need to insert the layer argument before the save-as or sheet argument
       args.splice(1, 0, ...layerArg);
     });
@@ -248,11 +327,12 @@ export default class App extends Component<any, AppState> {
       if (sheetType === SheetTypes.Columns && sheetRows) args.push('--sheet-rows', sheetRows.toString());
       if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
 
-      if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-layers', '--list-tags');
+      if (exportJson) args.push('--data', outputName.replace('.png', '.json'), '--format', 'json-array', '--list-layers', '--list-tags');
     }
 
     // both options (save as and sheet)
     if (splitLayers) args.splice(1, 0, '--split-layers');
+    if (allLayers) args.splice(1, 0, '--all-layers');
     args.push('--scale', `${scale}`);
     console.log('Exporting with args:', args.join(' '));
 
@@ -288,7 +368,7 @@ export default class App extends Component<any, AppState> {
     const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
     const { selectedFiles, selectedLayers } = this.state;
     const { exportLoading, layersLoading } = this.state;
-    const { exportJson, sheetType, splitLayers } = options;
+    const { exportJson, sheetType, splitLayers, allLayers } = options;
 
     return (
       <div className='overflow-hidden'>
@@ -318,7 +398,7 @@ export default class App extends Component<any, AppState> {
         {fileList?.length && (
           // File List
           <div className='flex gap-2'>
-            <div className='min-w-[800px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
+            <div className='min-w-[600px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
               <table className='table w-full'>
                 <thead>
                   <tr>
@@ -359,7 +439,7 @@ export default class App extends Component<any, AppState> {
             </div>
 
             {/* Layers List */}
-            <div className='min-w-[300px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
+            <div className='min-w-[500px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
               {layersLoading ? (
                 <div className='flex items-center justify-center h-full'>
                   Loading Layers
@@ -382,7 +462,7 @@ export default class App extends Component<any, AppState> {
                             if (layer.endsWith('.ase') || layer.endsWith('.aseprite'))
                               return (
                                 <tr key={index} className='select-none'>
-                                  <td className='text-base text-gray-300 font-black'>{layer}</td>
+                                  <td className='text-base font-black text-gray-300'>{layer}</td>
                                 </tr>
                               );
 
@@ -444,18 +524,32 @@ export default class App extends Component<any, AppState> {
         </div>
 
         {/* Sheet Export Options */}
-        <div className='flex items-center gap-2 ml-4 p-2'>
+        <div className='flex items-center gap-2 p-2 ml-4'>
           {/* BOTH Options (save as and sheet) */}
           {/* Split Layers */}
           <div className='flex items-center gap-2'>
             <input
-              id='export-json'
+              id='split-layers'
               type='checkbox'
               className='checkbox'
               checked={splitLayers ?? false}
               onChange={() => this.updateConfig('options', { ...options, splitLayers: !splitLayers })}
             />
-            <label htmlFor='export-json'>Split Layers?</label>
+            <label htmlFor='split-layers'>Split Layers?</label>
+          </div>
+
+          <div className='flex items-center gap-2'>
+            <input
+              id='all-layers'
+              type='checkbox'
+              className='checkbox'
+              checked={allLayers ?? false}
+              onChange={async () => {
+                await this.updateConfig('options', { ...options, allLayers: !allLayers });
+                await this.loadLayerList();
+              }}
+            />
+            <label htmlFor='all-layers'>All Layers?</label>
           </div>
 
           {exportType === ExportTypes.SheetExport && (
@@ -480,7 +574,7 @@ export default class App extends Component<any, AppState> {
                 <select
                   name='sheet-type'
                   id='sheet-type'
-                  className='select select-bordered select-sm w-full max-w-xs'
+                  className='w-full max-w-xs select select-bordered select-sm'
                   value={options.sheetType}
                   onChange={(e) => this.updateConfig('options', { ...options, sheetType: parseInt(e.target.value) })}>
                   <option value={SheetTypes.Horizontal}>Horizontal</option>
@@ -527,7 +621,7 @@ export default class App extends Component<any, AppState> {
         </div>
 
         {/* Scale */}
-        <div className='flex items-center justify-center absolute bottom-4 right-24 gap-2'>
+        <div className='absolute flex items-center justify-center gap-2 bottom-4 right-24'>
           <label htmlFor='scale'>Scale:</label>
           <input
             type='number'
