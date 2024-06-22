@@ -19,8 +19,8 @@ interface AppState {
   // Local State
   fileList?: FileEntry[];
   layerList?: string[];
-  selectedFile?: FileEntry;
-  selectedLayer?: string;
+  selectedFiles?: FileEntry[];
+  selectedLayers?: string[];
   exportLoading?: boolean;
   layersLoading?: boolean;
 }
@@ -172,42 +172,61 @@ export default class App extends Component<any, AppState> {
     try {
       var fileList = (await readDir(path)).filter((f) => f.name?.endsWith('.ase') || f.name?.endsWith('.aseprite'));
       if (!fileList?.length) return;
-      this.setState({ fileList, selectedFile: fileList[0] });
-
-      // Load Layer List
-      await this.loadLayerList(fileList[0]);
+      this.setState({ fileList, selectedFiles: [fileList[0]] }, async () => {
+        // Load Layer List
+        await this.loadLayerList();
+      });
     } catch (error) {
       console.error(error);
     }
   }
 
-  async loadLayerList(file: FileEntry) {
+  async loadLayerList() {
     try {
-      this.setState({ layerList: [], layersLoading: true, selectedLayer: undefined });
-      const command = new Command('Aseprite', ['-b', '--list-layers', file.path]);
-      command.stdout.on('data', (data) => this.state.layerList?.push(data));
-      command.on('close', () => this.setState({ layersLoading: false }));
-      await command.spawn();
+      this.setState({ layerList: this.state.layerList ?? [], layersLoading: true, selectedLayers: undefined });
+      const layerList: string[] = [];
+
+      if (this.state.selectedFiles?.length === 0) return this.setState({ layerList: [], layersLoading: false });
+
+      this.state.selectedFiles?.forEach(async (file) => {
+        const command = new Command('Aseprite', ['-b', '--list-layers', file.path]);
+        command.stdout.on('data', (data) => layerList.push(`${file?.name?.split('.')[0] ?? 'Err'} - ${data}`));
+        command.on('close', () => this.setState({ layerList: layerList.sort((a, b) => a.localeCompare(b)), layersLoading: false }));
+        await command.spawn();
+      });
     } catch (error) {
       console.error(error);
     }
   }
 
   async handleExport() {
-    const { fileListPath, selectedFile, exportType, options } = this.state;
-    const { exportJson, sheetType, sheetColumns, sheetRows } = options;
-    if (!selectedFile) {
+    const { selectedFiles } = this.state;
+    if (!selectedFiles?.length) {
       await dialog.message('Please select a file to export.', { type: 'error', title: 'Aseprite Multiple Export - No file selected!' });
       return;
     }
 
-    const outputName = this.getAsepriteOutputName();
+    this.setState({ exportLoading: true });
+    const promisses: Promise<void>[] = [];
+    selectedFiles.forEach((_, index) => promisses.push(this.exportFile(index)));
+    await Promise.all(promisses);
+    dialog.message('Exported all selected files successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
+    this.setState({ exportLoading: false });
+  }
+
+  async exportFile(index: number) {
+    const { fileListPath, selectedFiles, exportType, options } = this.state;
+    const { exportJson, sheetType, sheetColumns, sheetRows } = options;
+    if (!selectedFiles?.length) return;
+
+    const file = selectedFiles[index];
+    const outputName = this.getAsepriteOutputName(index);
 
     const exportTypesArgs = [
       // export every frame as a separate file
-      ['-b', selectedFile.path, '--save-as', `${outputName}`],
+      ['-b', file.path, '--save-as', `${outputName}`],
       // export sheet
-      ['-b', selectedFile.path, '--sheet', `${outputName}`],
+      ['-b', file.path, '--sheet', `${outputName}`],
     ];
 
     const args = exportTypesArgs[exportType];
@@ -224,23 +243,18 @@ export default class App extends Component<any, AppState> {
 
     try {
       const command = new Command('Aseprite', args, { cwd: fileListPath });
-      command.stdout.on('data', (data) => console.log(data));
-      command.on('close', () => {
-        dialog.message('Exported successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
-        this.setState({ exportLoading: false });
-      });
-
-      this.setState({ exportLoading: true });
+      command.on('close', () => {});
       await command.spawn();
     } catch (error) {
       console.error(error);
     }
   }
 
-  getAsepriteOutputName() {
-    const { selectedFile } = this.state;
-    if (!selectedFile) return 'ERR';
+  getAsepriteOutputName(index: number) {
+    const { selectedFiles } = this.state;
+    if (!selectedFiles?.length) return 'ERR';
 
+    const selectedFile = selectedFiles[index];
     if (selectedFile.name) {
       const ext = selectedFile.name.split('.').pop();
       return selectedFile.name.replace(`.${ext}`, '.png');
@@ -257,7 +271,7 @@ export default class App extends Component<any, AppState> {
 
   render() {
     const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
-    const { selectedFile, selectedLayer } = this.state;
+    const { selectedFiles, selectedLayers } = this.state;
     const { exportLoading, layersLoading } = this.state;
     const { exportJson, sheetType } = options;
 
@@ -297,23 +311,28 @@ export default class App extends Component<any, AppState> {
                 </thead>
                 <tbody>
                   {fileList?.map((file, index) => (
-                    <tr key={index} className={`${selectedFile?.name === file.name ? 'bg-base-200' : ''}`}>
+                    <tr key={index} className={`${selectedFiles?.includes(file) ? 'bg-base-200' : ''}`}>
                       <td
                         className='cursor-pointer select-none'
                         onClick={() => {
-                          this.setState(
-                            (prevState) => ({ ...prevState, selectedFile: selectedFile?.name === file.name ? undefined : file }),
-                            async () => {
-                              try {
-                                if (!file?.name) return;
-                                if (file.name !== selectedFile?.name) {
-                                  await this.loadLayerList(file);
-                                }
-                              } catch (error) {
-                                console.error(error);
-                              }
+                          if (layersLoading || !selectedFiles) return;
+
+                          const newFiles = selectedFiles;
+
+                          // we are trying to add?
+                          if (!newFiles.includes(file)) {
+                            newFiles.push(file);
+                          } else {
+                            newFiles.splice(newFiles.indexOf(file), 1);
+                          }
+
+                          this.setState({ selectedFiles: newFiles }, async () => {
+                            try {
+                              await this.loadLayerList();
+                            } catch (error) {
+                              console.error(error);
                             }
-                          );
+                          });
                         }}>
                         {file.name}
                       </td>
@@ -325,32 +344,53 @@ export default class App extends Component<any, AppState> {
 
             {/* Layers List */}
             <div className='min-w-[300px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
-              {layersLoading && (
+              {layersLoading ? (
                 <div className='flex items-center justify-center h-full'>
                   Loading Layers
                   <span className='ml-2 loading loading-dots'></span>
                 </div>
-              )}
+              ) : (
+                <>
+                  {!layerList?.length ? (
+                    <div className='flex items-center justify-center h-full'>No Layers to show.</div>
+                  ) : (
+                    <>
+                      <table className='table w-full'>
+                        <thead>
+                          <tr>
+                            <th className='text-base'>Layer List</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {layerList?.map((layer, index) => {
+                            if (layer.endsWith('.ase') || layer.endsWith('.aseprite'))
+                              return (
+                                <tr key={index} className='select-none'>
+                                  <td className='text-base text-gray-300 font-black'>{layer}</td>
+                                </tr>
+                              );
 
-              {!layersLoading && (
-                <table className='table w-full'>
-                  <thead>
-                    <tr>
-                      <th className='text-base'>Layer List</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {layerList?.map((layer, index) => (
-                      <tr key={index} className={`${selectedLayer === layer ? 'bg-base-200' : ''}`}>
-                        <td
-                          className='cursor-pointer select-none'
-                          onClick={() => this.setState({ selectedLayer: selectedLayer === layer ? undefined : layer })}>
-                          {layer}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            return (
+                              <tr key={index} className={`${selectedLayers?.includes(layer) ? 'bg-base-200' : ''}`}>
+                                <td
+                                  className='cursor-pointer select-none'
+                                  onClick={() =>
+                                    this.setState({
+                                      selectedLayers: selectedLayers?.includes(layer)
+                                        ? selectedLayers?.filter((l) => l !== layer)
+                                        : [...(selectedLayers ?? []), layer],
+                                    })
+                                  }>
+                                  {layer}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>
