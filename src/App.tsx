@@ -15,6 +15,7 @@ interface AppState {
     sheetType: SheetTypes;
     sheetColumns?: number;
     sheetRows?: number;
+    splitLayers?: boolean;
   };
 
   // Local State
@@ -220,7 +221,7 @@ export default class App extends Component<any, AppState> {
 
   async exportFile(index: number) {
     const { fileListPath, selectedFiles, selectedLayers, exportType, scale, options } = this.state;
-    const { exportJson, sheetType, sheetColumns, sheetRows } = options;
+    const { exportJson, sheetType, sheetColumns, sheetRows, splitLayers } = options;
     if (!selectedFiles?.length) return;
 
     const file = selectedFiles[index];
@@ -248,9 +249,11 @@ export default class App extends Component<any, AppState> {
       if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
 
       if (exportJson) args.push('--data', `${outputName.replace('.png', '.json')}`, '--format', 'json-array', '--list-layers', '--list-tags');
-      args.push('--scale', `${scale}`);
     }
 
+    // both options (save as and sheet)
+    if (splitLayers) args.splice(1, 0, '--split-layers');
+    args.push('--scale', `${scale}`);
     console.log('Exporting with args:', args.join(' '));
 
     try {
@@ -285,7 +288,7 @@ export default class App extends Component<any, AppState> {
     const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
     const { selectedFiles, selectedLayers } = this.state;
     const { exportLoading, layersLoading } = this.state;
-    const { exportJson, sheetType } = options;
+    const { exportJson, sheetType, splitLayers } = options;
 
     return (
       <div className='overflow-hidden'>
@@ -296,6 +299,7 @@ export default class App extends Component<any, AppState> {
           </div>
         )}
 
+        {/* Keep Config Checkbox */}
         <div className='absolute top-0 flex items-center gap-2 mt-6 ml-4 right-4'>
           <input id='keep-config' type='checkbox' className='checkbox' checked={keepConfig} onChange={() => this.updateConfig('keepConfig', !keepConfig)} />
           <label htmlFor='keep-config'>Keep Changes?</label>
@@ -410,6 +414,7 @@ export default class App extends Component<any, AppState> {
 
         {/* Export Options */}
         <div className='flex justify-start'>
+          {/* Every Frame */}
           <div className='flex items-center justify-center gap-2 p-2 mt-2 ml-4'>
             <input
               id='every-frame'
@@ -423,6 +428,7 @@ export default class App extends Component<any, AppState> {
             <label htmlFor='every-frame'>Every Frame?</label>
           </div>
 
+          {/* Sheet Export */}
           <div className='flex items-center justify-center gap-2 p-2 mt-2 ml-4'>
             <input
               id='every-frame'
@@ -437,70 +443,90 @@ export default class App extends Component<any, AppState> {
           </div>
         </div>
 
-        {/* Export Options */}
-        {exportType === ExportTypes.SheetExport && (
-          <div className='flex items-center gap-2 ml-4 p-2'>
-            <div className='flex items-center gap-2'>
-              <input
-                id='export-json'
-                type='checkbox'
-                className='checkbox'
-                checked={exportJson}
-                onChange={() => this.updateConfig('options', { ...options, exportJson: !exportJson })}
-              />
-              <label htmlFor='export-json'>Export JSON?</label>
-            </div>
-
-            <div className='flex items-center justify-center gap-2'>
-              <label htmlFor='sheet-type' className='label text-nowrap'>
-                Sheet Type:
-              </label>
-              <select
-                name='sheet-type'
-                id='sheet-type'
-                className='select select-bordered select-sm w-full max-w-xs'
-                value={options.sheetType}
-                onChange={(e) => this.updateConfig('options', { ...options, sheetType: parseInt(e.target.value) })}>
-                <option value={SheetTypes.Horizontal}>Horizontal</option>
-                <option value={SheetTypes.Vertical}>Vertical</option>
-                <option value={SheetTypes.Rows}>Rows</option>
-                <option value={SheetTypes.Columns}>Columns</option>
-                <option value={SheetTypes.Packed}>Packed</option>
-              </select>
-            </div>
-
-            {sheetType === SheetTypes.Columns && (
-              <div className='flex items-center gap-2'>
-                <label htmlFor='sheet-type' className='label text-nowrap'>
-                  Sheet Columns:
-                </label>
-                <input
-                  type='number'
-                  className='input input-sm input-bordered'
-                  min={1}
-                  value={options.sheetRows ?? 0}
-                  onChange={(e) => this.updateConfig('options', { ...options, sheetRows: parseInt(e.target.value) })}
-                />
-              </div>
-            )}
-
-            {sheetType === SheetTypes.Rows && (
-              <div className='flex items-center gap-2'>
-                <label htmlFor='sheet-type' className='label text-nowrap'>
-                  Sheet Rows:
-                </label>
-                <input
-                  type='number'
-                  className='input input-sm input-bordered'
-                  min={1}
-                  value={options.sheetColumns ?? 0}
-                  onChange={(e) => this.updateConfig('options', { ...options, sheetColumns: parseInt(e.target.value) })}
-                />
-              </div>
-            )}
+        {/* Sheet Export Options */}
+        <div className='flex items-center gap-2 ml-4 p-2'>
+          {/* BOTH Options (save as and sheet) */}
+          {/* Split Layers */}
+          <div className='flex items-center gap-2'>
+            <input
+              id='export-json'
+              type='checkbox'
+              className='checkbox'
+              checked={splitLayers ?? false}
+              onChange={() => this.updateConfig('options', { ...options, splitLayers: !splitLayers })}
+            />
+            <label htmlFor='export-json'>Split Layers?</label>
           </div>
-        )}
 
+          {exportType === ExportTypes.SheetExport && (
+            <>
+              {/* Export JSON */}
+              <div className='flex items-center gap-2'>
+                <input
+                  id='export-json'
+                  type='checkbox'
+                  className='checkbox'
+                  checked={exportJson ?? false}
+                  onChange={() => this.updateConfig('options', { ...options, exportJson: !exportJson })}
+                />
+                <label htmlFor='export-json'>Export JSON?</label>
+              </div>
+
+              {/* Sheet Type */}
+              <div className='flex items-center justify-center gap-2'>
+                <label htmlFor='sheet-type' className='label text-nowrap'>
+                  Sheet Type:
+                </label>
+                <select
+                  name='sheet-type'
+                  id='sheet-type'
+                  className='select select-bordered select-sm w-full max-w-xs'
+                  value={options.sheetType}
+                  onChange={(e) => this.updateConfig('options', { ...options, sheetType: parseInt(e.target.value) })}>
+                  <option value={SheetTypes.Horizontal}>Horizontal</option>
+                  <option value={SheetTypes.Vertical}>Vertical</option>
+                  <option value={SheetTypes.Rows}>Rows</option>
+                  <option value={SheetTypes.Columns}>Columns</option>
+                  <option value={SheetTypes.Packed}>Packed</option>
+                </select>
+              </div>
+
+              {/* Sheet Column */}
+              {sheetType === SheetTypes.Columns && (
+                <div className='flex items-center gap-2'>
+                  <label htmlFor='sheet-type' className='label text-nowrap'>
+                    Sheet Columns:
+                  </label>
+                  <input
+                    type='number'
+                    className='input input-sm input-bordered'
+                    min={1}
+                    value={options.sheetRows ?? 0}
+                    onChange={(e) => this.updateConfig('options', { ...options, sheetRows: parseInt(e.target.value) })}
+                  />
+                </div>
+              )}
+
+              {/* Sheet Rows */}
+              {sheetType === SheetTypes.Rows && (
+                <div className='flex items-center gap-2'>
+                  <label htmlFor='sheet-type' className='label text-nowrap'>
+                    Sheet Rows:
+                  </label>
+                  <input
+                    type='number'
+                    className='input input-sm input-bordered'
+                    min={1}
+                    value={options.sheetColumns ?? 0}
+                    onChange={(e) => this.updateConfig('options', { ...options, sheetColumns: parseInt(e.target.value) })}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Scale */}
         <div className='flex items-center justify-center absolute bottom-4 right-24 gap-2'>
           <label htmlFor='scale'>Scale:</label>
           <input
