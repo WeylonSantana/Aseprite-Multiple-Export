@@ -1,12 +1,11 @@
 import { Component } from 'react';
 import { open } from '@tauri-apps/api/dialog';
 import { exists, readTextFile, writeTextFile, BaseDirectory, createDir, readDir, FileEntry, removeFile } from '@tauri-apps/api/fs';
-import { Command } from '@tauri-apps/api/shell';
 import { dialog, process } from '@tauri-apps/api';
 import Filelist from './components/Filelist';
 import { ExportTypes, SheetTypes } from './types';
 import Checkbox from './components/Checkbox';
-import { BuildLayerTree, FormatLayerTree, GetAsepriteOutputName } from './utilities/Utilities';
+import { BuildLayerTree, FormatLayerTree } from './utilities/Utilities';
 import CommandHandler from './utilities/CommandHandler';
 
 export interface AppState {
@@ -189,9 +188,9 @@ export default class App extends Component<any, AppState> {
     try {
       const startGettingLayers = async () => {
         if (!file?.name) return this.setState({ layerList: [], layersLoading: false });
+        var jsonName = `${file.name.split('.').shift()}.json`;
 
         // first we need to create aseprite json and then read the layers from it
-        var jsonName = file.name.includes('.ase') ? file.name.replace('.ase', '.json') : file.name.replace('.aseprite', '.json');
         const args = ['-b'];
         if (options.allLayers) args.push('--all-layers');
         args.push('--list-layers', file.path, '--data', jsonName, '--format', 'json-array');
@@ -223,57 +222,18 @@ export default class App extends Component<any, AppState> {
     }
 
     this.setState({ exportLoading: true });
-    const promisses: Promise<void>[] = [];
-    selectedFiles.forEach((_, index) => promisses.push(this.exportFile(index)));
-    await Promise.all(promisses);
-    dialog.message('Exported all selected files successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
-    this.setState({ exportLoading: false });
-  }
-
-  async exportFile(index: number) {
-    const { fileListPath, selectedFiles, selectedLayers, exportType, scale, options } = this.state;
-    const { exportJson, sheetType, sheetColumns, sheetRows, splitLayers, allLayers } = options;
-    if (!selectedFiles?.length) return;
-
-    const file = selectedFiles[index];
-    if (!file?.name) return;
-    const outputName = GetAsepriteOutputName(selectedFiles, index, scale);
-
-    const exportTypesArgs: string[][] = [
-      // export every frame as a separate file
-      ['-b', file.name, '--save-as', `${outputName}`],
-      // export sheet
-      ['-b', file.name, '--sheet', `${outputName}`],
-    ];
-
-    const args = exportTypesArgs[exportType];
-
-    selectedLayers?.forEach((layer) => {
-      var layerArg = ['--layer', layer];
-      // we need to insert the layer argument before the save-as or sheet argument
-      args.splice(1, 0, ...layerArg);
-    });
-
-    if (exportType === ExportTypes.SheetExport) {
-      args.push('--sheet-type', SheetTypes[sheetType].toLowerCase());
-      if (sheetType === SheetTypes.Columns && sheetRows) args.push('--sheet-rows', sheetRows.toString());
-      if (sheetType === SheetTypes.Rows && sheetColumns) args.push('--sheet-columns', sheetColumns.toString());
-
-      if (exportJson) args.push('--data', outputName.replace('.png', '.json'), '--format', 'json-array', '--list-layers', '--list-tags');
-    }
-
-    // both options (save as and sheet)
-    if (splitLayers) args.splice(1, 0, '--split-layers');
-    if (allLayers) args.splice(1, 0, '--all-layers');
-    args.push('--scale', `${scale}`);
-    console.log('Exporting with args:', args.join(' '));
 
     try {
-      const command = new Command('Aseprite', args, { cwd: fileListPath });
-      command.on('close', () => {});
-      await command.spawn();
+      for (const file of selectedFiles) {
+        await this.commandHandler.exportSingleFile(file, this.state);
+      }
+
+      dialog.message('Exported all selected files successfully!', { type: 'info', title: 'Aseprite Multiple Export - Exported!' });
     } catch (error) {
       console.error(error);
+      dialog.message('An error occurred while exporting the files.', { type: 'error', title: 'Aseprite Multiple Export - Error!' });
+    } finally {
+      this.setState({ exportLoading: false });
     }
   }
 

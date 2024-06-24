@@ -1,17 +1,14 @@
 import { FileEntry } from '@tauri-apps/api/fs';
 import { Layer, LayerNode } from '../types';
 
-export function GetAsepriteOutputName(files: FileEntry[], selectedIndex: number, scale: number) {
-  if (!files?.length) return 'ERR';
-
-  const file = files[selectedIndex];
+export function GetAsepriteOutputName(file: FileEntry, scale: number) {
   if (file.name) {
     const ext = file.name.split('.').pop();
     return `${scale}x/${file.name.replace(`.${ext}`, '.png')}`;
   }
 
   const fileName = file.path.split('\\').pop();
-  if (fileName && fileName.length) {
+  if (fileName?.length) {
     const ext = fileName.split('.').pop();
     return `${scale}x/${fileName.replace(`.${ext}`, '.png')}`;
   }
