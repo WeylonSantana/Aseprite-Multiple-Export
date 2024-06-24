@@ -5,16 +5,18 @@ interface FilelistProps {
   fileList?: FileEntry[];
   layerList?: string[];
   selectedFiles?: FileEntry[];
+  selectedLayerFile?: FileEntry;
   selectedLayers?: string[];
   layersLoading?: boolean;
 
   loadLayerList: (file?: FileEntry) => void;
   selectFiles: (files: FileEntry[]) => void;
+  selectLayer: (layer: string, file?: FileEntry) => void;
 }
 
 export default class Filelist extends Component<FilelistProps> {
   render() {
-    const { fileList, layerList, layersLoading, selectedFiles, selectedLayers, loadLayerList, selectFiles } = this.props;
+    const { fileList, layerList, layersLoading, selectedFiles, selectedLayerFile, selectedLayers, loadLayerList, selectFiles, selectLayer } = this.props;
 
     return (
       <>
@@ -34,10 +36,12 @@ export default class Filelist extends Component<FilelistProps> {
                       <td
                         className='cursor-pointer select-none'
                         onClick={(event) => {
-                          if (layersLoading || !selectedFiles) return;
+                          if (!event.ctrlKey && (layersLoading || !selectedFiles || selectedLayers?.length)) return;
                           if (event.ctrlKey) return loadLayerList(file);
 
                           const newFiles = selectedFiles;
+                          if (!newFiles) return;
+
                           // we are trying to add?
                           if (!newFiles.includes(file)) {
                             newFiles.push(file);
@@ -85,15 +89,7 @@ export default class Filelist extends Component<FilelistProps> {
 
                             return (
                               <tr key={index} className={`${selectedLayers?.includes(layer) ? 'bg-base-200' : ''}`}>
-                                <td
-                                  className='cursor-pointer select-none'
-                                  onClick={() =>
-                                    this.setState({
-                                      selectedLayers: selectedLayers?.includes(layer)
-                                        ? selectedLayers?.filter((l) => l !== layer)
-                                        : [...(selectedLayers ?? []), layer],
-                                    })
-                                  }>
+                                <td className='cursor-pointer select-none' onClick={() => selectLayer(layer, selectedLayerFile)}>
                                   {layer}
                                 </td>
                               </tr>

@@ -29,6 +29,7 @@ export interface AppState {
   layerList?: string[];
   selectedFiles?: FileEntry[];
   selectedLayers?: string[];
+  selectedLayerFile?: FileEntry;
   exportLoading?: boolean;
   layersLoading?: boolean;
 }
@@ -208,7 +209,7 @@ export default class App extends Component<any, AppState> {
         }
       };
 
-      this.setState({ layerList: [], layersLoading: true, selectedLayers: undefined }, startGettingLayers);
+      this.setState({ layerList: [], layersLoading: true, selectedLayers: undefined, selectedLayerFile: file }, startGettingLayers);
     } catch (error) {
       console.error(error);
     }
@@ -278,7 +279,7 @@ export default class App extends Component<any, AppState> {
 
   render() {
     const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
-    const { selectedFiles, selectedLayers } = this.state;
+    const { selectedFiles, selectedLayerFile, selectedLayers } = this.state;
     const { exportLoading, layersLoading } = this.state;
     const { exportJson, sheetType, splitLayers, allLayers } = options;
 
@@ -314,10 +315,17 @@ export default class App extends Component<any, AppState> {
           fileList={fileList}
           layerList={layerList}
           selectedFiles={selectedFiles}
+          selectedLayerFile={selectedLayerFile}
           selectedLayers={selectedLayers}
           layersLoading={layersLoading}
           loadLayerList={(file) => this.loadLayerList(file)}
           selectFiles={(files) => this.setState({ selectedFiles: files })}
+          selectLayer={(layer, file) => {
+            const layers = selectedLayers?.includes(layer) ? selectedLayers?.filter((l) => l !== layer) : [...(selectedLayers ?? []), layer];
+            let files = selectedFiles;
+            if (layers.length > 0 && file) files = [file];
+            this.setState({ selectedLayers: layers, selectedFiles: files });
+          }}
         />
 
         {/* Export Options */}
