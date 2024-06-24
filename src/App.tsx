@@ -3,8 +3,13 @@ import { open } from '@tauri-apps/api/dialog';
 import { exists, readTextFile, writeTextFile, BaseDirectory, createDir, readDir, FileEntry, removeFile } from '@tauri-apps/api/fs';
 import { Command } from '@tauri-apps/api/shell';
 import { dialog, process } from '@tauri-apps/api';
+import Filelist from './components/Filelist';
+import { ExportTypes, SheetTypes } from './types';
+import Checkbox from './components/Checkbox';
+import { BuildLayerTree, FormatLayerTree, GetAsepriteOutputName } from './utilities/Utilities';
+import CommandHandler from './utilities/CommandHandler';
 
-interface AppState {
+export interface AppState {
   // Config State
   keepConfig: boolean;
   fileListPath: string;
@@ -28,34 +33,9 @@ interface AppState {
   layersLoading?: boolean;
 }
 
-enum ExportTypes {
-  EveryFrame,
-  SheetExport,
-}
-
-enum SheetTypes {
-  Horizontal,
-  Vertical,
-  Rows,
-  Columns,
-  Packed,
-}
-
-interface Layer {
-  name: string;
-  opacity?: number;
-  blendMode?: string;
-  group?: string;
-  color?: string;
-}
-
-interface LayerNode {
-  name: string;
-  fullPath: string;
-  children: LayerNode[];
-}
-
 export default class App extends Component<any, AppState> {
+  private commandHandler: CommandHandler;
+
   constructor(props: any) {
     super(props);
     this.state = {
@@ -69,20 +49,19 @@ export default class App extends Component<any, AppState> {
       },
     };
 
+    this.commandHandler = new CommandHandler();
+
     this.checkForAseprite = this.checkForAseprite.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.searchAsepriteFiles = this.searchAsepriteFiles.bind(this);
     this.loadFileList = this.loadFileList.bind(this);
     this.loadLayerList = this.loadLayerList.bind(this);
-    this.buildLayerTree = this.buildLayerTree.bind(this);
-    this.formatLayerTree = this.formatLayerTree.bind(this);
     this.handleExport = this.handleExport.bind(this);
   }
 
   async checkForAseprite() {
     try {
-      const command = new Command('Aseprite', ['--version']);
-      await command.spawn();
+      await this.commandHandler.executeCommand('Aseprite', ['--version']);
       return true;
     } catch (error) {
       if (error === 'program not found') {
@@ -196,91 +175,43 @@ export default class App extends Component<any, AppState> {
       if (!fileList?.length) return;
       this.setState({ fileList, selectedFiles: [fileList[0]] }, async () => {
         // Load Layer List
-        await this.loadLayerList();
+        await this.loadLayerList(fileList[0]);
       });
     } catch (error) {
       console.error(error);
     }
   }
 
-  async loadLayerList() {
-    try {
-      this.setState({ layerList: this.state.layerList ?? [], layersLoading: true, selectedLayers: undefined });
-      if (this.state.selectedFiles?.length === 0) return this.setState({ layerList: [], layersLoading: false });
+  async loadLayerList(file?: FileEntry) {
+    const { fileListPath, options } = this.state;
 
-      this.state.selectedFiles?.forEach(async (file, index) => {
+    try {
+      const startGettingLayers = async () => {
+        if (!file?.name) return this.setState({ layerList: [], layersLoading: false });
+
         // first we need to create aseprite json and then read the layers from it
-        const outputName = this.getAsepriteOutputName(index);
+        var jsonName = file.name.includes('.ase') ? file.name.replace('.ase', '.json') : file.name.replace('.aseprite', '.json');
         const args = ['-b'];
-        if (this.state.options.allLayers) args.push('--all-layers');
-        args.push('--list-layers', file.path, '--data', outputName.replace('.png', '.json'), '--format', 'json-array');
+        if (options.allLayers) args.push('--all-layers');
+        args.push('--list-layers', file.path, '--data', jsonName, '--format', 'json-array');
 
         try {
-          const command = new Command('Aseprite', args, { cwd: this.state.fileListPath });
-          command.on('close', async () => {
-            const asepriteJson = JSON.parse(await readTextFile(`${this.state.fileListPath}\\${outputName.replace('.png', '.json')}`));
-            //delete the json file
-            await removeFile(`${this.state.fileListPath}\\${outputName.replace('.png', '.json')}`);
-            var layersNodes = this.buildLayerTree(asepriteJson.meta.layers);
-            var layers = this.formatLayerTree(layersNodes);
-            this.setState({ layerList: layers, layersLoading: false });
-          });
-          await command.spawn();
+          //just create the json file to get the layers
+          await this.commandHandler.executeCommand('Aseprite', args, fileListPath);
+          const asepriteJson = JSON.parse(await readTextFile(`${fileListPath}\\${jsonName}`));
+          // delete the json file
+          await removeFile(`${fileListPath}\\${jsonName}`);
+
+          this.setState({ layerList: FormatLayerTree(BuildLayerTree(asepriteJson.meta.layers)), layersLoading: false });
         } catch (error) {
           console.error(error);
         }
-      });
+      };
+
+      this.setState({ layerList: [], layersLoading: true, selectedLayers: undefined }, startGettingLayers);
     } catch (error) {
       console.error(error);
     }
-  }
-
-  buildLayerTree(layers: Layer[]) {
-    const layerMap: { [key: string]: LayerNode } = {};
-    const rootNodes: LayerNode[] = [];
-
-    layers.forEach((layer) => {
-      const node: LayerNode = {
-        name: layer.name,
-        fullPath: layer.name,
-        children: [],
-      };
-
-      layerMap[layer.name] = node;
-
-      if (layer.group) {
-        const parent = layerMap[layer.group];
-        if (parent) {
-          parent.children.push(node);
-        } else {
-          rootNodes.push(node);
-        }
-      } else {
-        rootNodes.push(node);
-      }
-    });
-
-    return rootNodes;
-  }
-
-  formatLayerTree(nodes: LayerNode[]) {
-    const lines: string[] = [];
-
-    // recursive function to format the layer tree, to show in the UI all the paths like 'parent/group/layer'
-    const traverse = (node: LayerNode, parentPath = '') => {
-      const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
-
-      if (node.children.length === 0) {
-        // Only add to lines if it's not a group (i.e., it has no children)
-        lines.push(currentPath);
-      } else {
-        // Traverse children
-        node.children.forEach((child) => traverse(child, currentPath));
-      }
-    };
-
-    nodes.forEach((node) => traverse(node));
-    return lines.reverse();
   }
 
   async handleExport() {
@@ -305,7 +236,7 @@ export default class App extends Component<any, AppState> {
 
     const file = selectedFiles[index];
     if (!file?.name) return;
-    const outputName = this.getAsepriteOutputName(index);
+    const outputName = GetAsepriteOutputName(selectedFiles, index, scale);
 
     const exportTypesArgs: string[][] = [
       // export every frame as a separate file
@@ -345,25 +276,6 @@ export default class App extends Component<any, AppState> {
     }
   }
 
-  getAsepriteOutputName(index: number) {
-    const { selectedFiles, scale } = this.state;
-    if (!selectedFiles?.length) return 'ERR';
-
-    const selectedFile = selectedFiles[index];
-    if (selectedFile.name) {
-      const ext = selectedFile.name.split('.').pop();
-      return `${scale}x/${selectedFile.name.replace(`.${ext}`, '.png')}`;
-    }
-
-    const fileName = selectedFile.path.split('\\').pop();
-    if (fileName && fileName.length) {
-      const ext = fileName.split('.').pop();
-      return `${scale}x/${fileName.replace(`.${ext}`, '.png')}`;
-    }
-
-    return 'ERR';
-  }
-
   render() {
     const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
     const { selectedFiles, selectedLayers } = this.state;
@@ -380,10 +292,13 @@ export default class App extends Component<any, AppState> {
         )}
 
         {/* Keep Config Checkbox */}
-        <div className='absolute top-0 flex items-center gap-2 mt-6 ml-4 right-4'>
-          <input id='keep-config' type='checkbox' className='checkbox' checked={keepConfig} onChange={() => this.updateConfig('keepConfig', !keepConfig)} />
-          <label htmlFor='keep-config'>Keep Changes?</label>
-        </div>
+        <Checkbox
+          id='keep-config'
+          label='Keep Changes?'
+          checked={keepConfig}
+          className='absolute top-0 flex items-center gap-2 mt-6 ml-4 right-4'
+          onChange={() => this.updateConfig('keepConfig', !keepConfig)}
+        />
 
         {/* Aseprite Path Filelist Search */}
         <div className='flex items-center gap-2 mt-4 ml-4'>
@@ -395,102 +310,15 @@ export default class App extends Component<any, AppState> {
         </div>
 
         {/* Aseprite File List */}
-        {fileList?.length && (
-          // File List
-          <div className='flex gap-2'>
-            <div className='min-w-[600px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
-              <table className='table w-full'>
-                <thead>
-                  <tr>
-                    <th className='text-base'>File Name</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fileList?.map((file, index) => (
-                    <tr key={index} className={`${selectedFiles?.includes(file) ? 'bg-base-200' : ''}`}>
-                      <td
-                        className='cursor-pointer select-none'
-                        onClick={() => {
-                          if (layersLoading || !selectedFiles) return;
-
-                          const newFiles = selectedFiles;
-
-                          // we are trying to add?
-                          if (!newFiles.includes(file)) {
-                            newFiles.push(file);
-                          } else {
-                            newFiles.splice(newFiles.indexOf(file), 1);
-                          }
-
-                          this.setState({ selectedFiles: newFiles }, async () => {
-                            try {
-                              await this.loadLayerList();
-                            } catch (error) {
-                              console.error(error);
-                            }
-                          });
-                        }}>
-                        {file.name}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Layers List */}
-            <div className='min-w-[500px] max-h-[400px] bg-base-300 rounded-md mt-2 ml-4 overflow-y-auto'>
-              {layersLoading ? (
-                <div className='flex items-center justify-center h-full'>
-                  Loading Layers
-                  <span className='ml-2 loading loading-dots'></span>
-                </div>
-              ) : (
-                <>
-                  {!layerList?.length ? (
-                    <div className='flex items-center justify-center h-full'>No Layers to show.</div>
-                  ) : (
-                    <>
-                      <table className='table w-full'>
-                        <thead>
-                          <tr>
-                            <th className='text-base'>Layer List</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {layerList?.map((layer, index) => {
-                            if (layer.endsWith('.ase') || layer.endsWith('.aseprite'))
-                              return (
-                                <tr key={index} className='select-none'>
-                                  <td className='text-base font-black text-gray-300'>{layer}</td>
-                                </tr>
-                              );
-
-                            return (
-                              <tr key={index} className={`${selectedLayers?.includes(layer) ? 'bg-base-200' : ''}`}>
-                                <td
-                                  className='cursor-pointer select-none'
-                                  onClick={() =>
-                                    this.setState({
-                                      selectedLayers: selectedLayers?.includes(layer)
-                                        ? selectedLayers?.filter((l) => l !== layer)
-                                        : [...(selectedLayers ?? []), layer],
-                                    })
-                                  }>
-                                  {layer}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        <Filelist
+          fileList={fileList}
+          layerList={layerList}
+          selectedFiles={selectedFiles}
+          selectedLayers={selectedLayers}
+          layersLoading={layersLoading}
+          loadLayerList={(file) => this.loadLayerList(file)}
+          selectFiles={(files) => this.setState({ selectedFiles: files })}
+        />
 
         {/* Export Options */}
         <div className='flex justify-start'>
@@ -527,44 +355,32 @@ export default class App extends Component<any, AppState> {
         <div className='flex items-center gap-2 p-2 ml-4'>
           {/* BOTH Options (save as and sheet) */}
           {/* Split Layers */}
-          <div className='flex items-center gap-2'>
-            <input
-              id='split-layers'
-              type='checkbox'
-              className='checkbox'
-              checked={splitLayers ?? false}
-              onChange={() => this.updateConfig('options', { ...options, splitLayers: !splitLayers })}
-            />
-            <label htmlFor='split-layers'>Split Layers?</label>
-          </div>
+          <Checkbox
+            id='split-layers'
+            label='Split Layers?'
+            checked={splitLayers ?? false}
+            onChange={() => this.updateConfig('options', { ...options, splitLayers: !splitLayers })}
+          />
 
-          <div className='flex items-center gap-2'>
-            <input
-              id='all-layers'
-              type='checkbox'
-              className='checkbox'
-              checked={allLayers ?? false}
-              onChange={async () => {
-                await this.updateConfig('options', { ...options, allLayers: !allLayers });
-                await this.loadLayerList();
-              }}
-            />
-            <label htmlFor='all-layers'>All Layers?</label>
-          </div>
+          <Checkbox
+            id='all-layers'
+            label='All Layers?'
+            checked={allLayers ?? false}
+            onChange={async () => {
+              await this.updateConfig('options', { ...options, allLayers: !allLayers });
+              await this.loadLayerList();
+            }}
+          />
 
           {exportType === ExportTypes.SheetExport && (
             <>
               {/* Export JSON */}
-              <div className='flex items-center gap-2'>
-                <input
-                  id='export-json'
-                  type='checkbox'
-                  className='checkbox'
-                  checked={exportJson ?? false}
-                  onChange={() => this.updateConfig('options', { ...options, exportJson: !exportJson })}
-                />
-                <label htmlFor='export-json'>Export JSON?</label>
-              </div>
+              <Checkbox
+                id='export-json'
+                label='Export JSON?'
+                checked={exportJson ?? false}
+                onChange={() => this.updateConfig('options', { ...options, exportJson: !exportJson })}
+              />
 
               {/* Sheet Type */}
               <div className='flex items-center justify-center gap-2'>
