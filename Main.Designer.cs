@@ -42,8 +42,11 @@
             chkEveryLayer = new CheckBox();
             chkAllLayers = new CheckBox();
             toolTip = new ToolTip(components);
+            lblScale = new Label();
+            nudScale = new NumericUpDown();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             SuspendLayout();
             // 
             // txtSearchFolder
@@ -87,7 +90,7 @@
             // chkKeepChanges
             // 
             chkKeepChanges.AutoSize = true;
-            chkKeepChanges.Location = new Point(865, 9);
+            chkKeepChanges.Location = new Point(666, 9);
             chkKeepChanges.Name = "chkKeepChanges";
             chkKeepChanges.Size = new Size(106, 19);
             chkKeepChanges.TabIndex = 4;
@@ -135,9 +138,9 @@
             // 
             // btnExport
             // 
-            btnExport.Location = new Point(896, 587);
+            btnExport.Location = new Point(697, 524);
             btnExport.Name = "btnExport";
-            btnExport.Size = new Size(75, 23);
+            btnExport.Size = new Size(75, 25);
             btnExport.TabIndex = 6;
             btnExport.Text = "Export!";
             btnExport.UseVisualStyleBackColor = true;
@@ -178,11 +181,32 @@
             chkAllLayers.UseVisualStyleBackColor = true;
             chkAllLayers.CheckedChanged += basicControl_Changed;
             // 
+            // lblScale
+            // 
+            lblScale.AutoSize = true;
+            lblScale.Location = new Point(593, 527);
+            lblScale.Name = "lblScale";
+            lblScale.Size = new Size(37, 15);
+            lblScale.TabIndex = 8;
+            lblScale.Text = "Scale:";
+            // 
+            // nudScale
+            // 
+            nudScale.Location = new Point(636, 525);
+            nudScale.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            nudScale.Name = "nudScale";
+            nudScale.Size = new Size(55, 23);
+            nudScale.TabIndex = 9;
+            nudScale.Value = new decimal(new int[] { 1, 0, 0, 0 });
+            nudScale.ValueChanged += basicControl_Changed;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(983, 622);
+            ClientSize = new Size(784, 561);
+            Controls.Add(nudScale);
+            Controls.Add(lblScale);
             Controls.Add(grpExportOptions);
             Controls.Add(btnExport);
             Controls.Add(grpExportTypes);
@@ -191,8 +215,10 @@
             Controls.Add(btnSearchFolder);
             Controls.Add(lblSearchFolder);
             Controls.Add(txtSearchFolder);
+            MaximizeBox = false;
             MinimumSize = new Size(800, 600);
             Name = "Main";
+            ShowIcon = false;
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Aseprite Multiple Export";
             Load += Main_Load;
@@ -200,6 +226,7 @@
             grpExportTypes.PerformLayout();
             grpExportOptions.ResumeLayout(false);
             grpExportOptions.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize) nudScale).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -219,5 +246,7 @@
         private CheckBox chkAllLayers;
         private CheckBox chkEveryLayer;
         private ToolTip toolTip;
+        private Label lblScale;
+        private NumericUpDown nudScale;
     }
 }

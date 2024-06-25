@@ -82,5 +82,17 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["EveryLayer"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int Scale {
+            get {
+                return ((int)(this["Scale"]));
+            }
+            set {
+                this["Scale"] = value;
+            }
+        }
     }
 }

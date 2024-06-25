@@ -9,6 +9,7 @@ namespace Aseprite_Multiple_Export
         private ExportType ExportType;
         private bool AllLayers;
         private bool EveryLayer;
+        private int Scale;
 
         private List<string> Filelist = new List<string>();
         private Process process;
@@ -57,6 +58,7 @@ namespace Aseprite_Multiple_Export
             rdoSpriteSheet.Checked = Properties.Settings.Default.ExportType == (int) ExportType.SpriteSheet;
             chkAllLayers.Checked = Properties.Settings.Default.AllLayers;
             chkEveryLayer.Checked = Properties.Settings.Default.EveryLayer;
+            nudScale.Value = Properties.Settings.Default.Scale;
 
             UpdateForm();
             _isLoading = false;
@@ -71,6 +73,7 @@ namespace Aseprite_Multiple_Export
             Properties.Settings.Default.ExportType = KeepChanges ? (int) ExportType : default;
             Properties.Settings.Default.AllLayers = KeepChanges ? chkAllLayers.Checked : default;
             Properties.Settings.Default.EveryLayer = KeepChanges ? chkEveryLayer.Checked : default;
+            Properties.Settings.Default.Scale = KeepChanges ? (int) nudScale.Value : default;
 
             Properties.Settings.Default.Save();
         }
@@ -110,6 +113,7 @@ namespace Aseprite_Multiple_Export
             ExportType = rdoEveryFrame.Checked ? ExportType.EveryFrame : ExportType.SpriteSheet;
             AllLayers = chkAllLayers.Checked;
             EveryLayer = chkEveryLayer.Checked;
+            Scale = (int) nudScale.Value;
 
             Main_Save();
         }
@@ -128,20 +132,23 @@ namespace Aseprite_Multiple_Export
 
             foreach ( var file in Filelist )
             {
-                string filename = file.ToString();
-                command.Add(filename);
+                command.Add(file.ToString());
+                command.Add($"--scale {Scale}");
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
 
-                UpdateOutputName(ref filename);
-                command.Add(filename);
+                string outputName = UpdateOutputName(file.ToString());
+                command.Add(outputName);
 
-                ProcessCommand(string.Join(" ", command));
+                string finalCommand = string.Join(" ", command);
+                ProcessCommand(finalCommand);
             }
+
+            var exportedPath = Path.Combine(FolderPath, $"{Scale}x");
 
             MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void UpdateOutputName(ref string filename)
+        private string UpdateOutputName(string filename)
         {
             string ext = Path.GetExtension(filename);
             filename = filename.Replace(ext, ".png");
@@ -158,6 +165,9 @@ namespace Aseprite_Multiple_Export
             {
                 filename = filename.Replace(ext, ".png");
             }
+
+            filename = Path.Combine($"{Scale}x", filename);
+            return filename;
         }
 
         private void basicControl_Changed(object sender, EventArgs e)
