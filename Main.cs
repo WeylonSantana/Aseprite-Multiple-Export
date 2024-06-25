@@ -4,9 +4,10 @@ namespace Aseprite_Multiple_Export
 {
     public partial class Main : Form
     {
-        private bool KeepChanges = false;
+        private bool KeepChanges;
         private string FolderPath;
         private List<string> Filelist;
+        private ExportType ExportType;
 
         private Process process;
         private bool _isLoading = false;
@@ -50,6 +51,8 @@ namespace Aseprite_Multiple_Export
             _isLoading = true;
             chkKeepChanges.Checked = Properties.Settings.Default.KeepChanges;
             txtSearchFolder.Text = Properties.Settings.Default.FolderPath;
+            rdoEveryFrame.Checked = Properties.Settings.Default.ExportType == (int) ExportType.EveryFrame;
+            rdoSpriteSheet.Checked = Properties.Settings.Default.ExportType == (int) ExportType.SpriteSheet;
 
             UpdateForm();
             _isLoading = false;
@@ -57,9 +60,11 @@ namespace Aseprite_Multiple_Export
 
         private void Main_Save()
         {
-            if (_isLoading) return;
+            if ( _isLoading )
+                return;
             Properties.Settings.Default.KeepChanges = KeepChanges;
             Properties.Settings.Default.FolderPath = KeepChanges ? FolderPath : string.Empty;
+            Properties.Settings.Default.ExportType = KeepChanges ? (int) ExportType : default;
 
             Properties.Settings.Default.Save();
         }
@@ -97,13 +102,52 @@ namespace Aseprite_Multiple_Export
                 }
             }
 
+            ExportType = rdoEveryFrame.Checked ? ExportType.EveryFrame : ExportType.SpriteSheet;
+
             Main_Save();
+        }
+
+        private void btnExport_Click(object sender, EventArgs e)
+        {
+            if ( lstFilelist.SelectedItems.Count == 0 )
+            {
+                MessageBox.Show("Please select at least one file to export.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            List<string> command = new List<string>() { "Aseprite", "-b" };
+
+            foreach ( var file in lstFilelist.SelectedItems )
+            {
+                string filename = file.ToString();
+                command.Add(filename);
+                command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
+                
+                UpdateOutputName(ref filename);
+                command.Add(filename);
+
+                ProcessCommand(string.Join(" ", command));
+            }
+
+            MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void UpdateOutputName(ref string filename)
+        {
+            string ext = Path.GetExtension(filename);
+            if (ExportType == ExportType.EveryFrame)
+            {
+                filename = filename.Replace(ext, "_{frame}.png");
+            }
+            else
+            {
+                filename = filename.Replace(ext, ".png");
+            }
         }
 
         private void chkKeepChanges_CheckedChanged(object sender, EventArgs e)
         {
-            KeepChanges = chkKeepChanges.Checked;
-            Main_Save();
+            UpdateForm();
         }
 
         private void btnSearchFolder_Click(object sender, EventArgs e)
@@ -114,6 +158,16 @@ namespace Aseprite_Multiple_Export
                 txtSearchFolder.Text = openFolder.SelectedPath;
                 UpdateForm();
             }
+        }
+
+        private void rdoEveryFrame_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateForm();
+        }
+
+        private void rdoSpriteSheet_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateForm();
         }
     }
 }

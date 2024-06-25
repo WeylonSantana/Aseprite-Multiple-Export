@@ -46,5 +46,17 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["FolderPath"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int ExportType {
+            get {
+                return ((int)(this["ExportType"]));
+            }
+            set {
+                this["ExportType"] = value;
+            }
+        }
     }
 }
