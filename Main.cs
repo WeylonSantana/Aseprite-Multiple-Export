@@ -6,9 +6,11 @@ namespace Aseprite_Multiple_Export
     {
         private bool KeepChanges;
         private string FolderPath;
-        private List<string> Filelist;
         private ExportType ExportType;
+        private bool AllLayers;
+        private bool EveryLayer;
 
+        private List<string> Filelist = new List<string>();
         private Process process;
         private bool _isLoading = false;
 
@@ -53,6 +55,8 @@ namespace Aseprite_Multiple_Export
             txtSearchFolder.Text = Properties.Settings.Default.FolderPath;
             rdoEveryFrame.Checked = Properties.Settings.Default.ExportType == (int) ExportType.EveryFrame;
             rdoSpriteSheet.Checked = Properties.Settings.Default.ExportType == (int) ExportType.SpriteSheet;
+            chkAllLayers.Checked = Properties.Settings.Default.AllLayers;
+            chkEveryLayer.Checked = Properties.Settings.Default.EveryLayer;
 
             UpdateForm();
             _isLoading = false;
@@ -65,6 +69,8 @@ namespace Aseprite_Multiple_Export
             Properties.Settings.Default.KeepChanges = KeepChanges;
             Properties.Settings.Default.FolderPath = KeepChanges ? FolderPath : string.Empty;
             Properties.Settings.Default.ExportType = KeepChanges ? (int) ExportType : default;
+            Properties.Settings.Default.AllLayers = KeepChanges ? chkAllLayers.Checked : default;
+            Properties.Settings.Default.EveryLayer = KeepChanges ? chkEveryLayer.Checked : default;
 
             Properties.Settings.Default.Save();
         }
@@ -92,7 +98,6 @@ namespace Aseprite_Multiple_Export
                             lstFilelist.Items.Add(Path.GetFileName(file));
                         }
                     }
-                    Filelist = files;
                 }
                 else
                 {
@@ -103,26 +108,30 @@ namespace Aseprite_Multiple_Export
             }
 
             ExportType = rdoEveryFrame.Checked ? ExportType.EveryFrame : ExportType.SpriteSheet;
+            AllLayers = chkAllLayers.Checked;
+            EveryLayer = chkEveryLayer.Checked;
 
             Main_Save();
         }
 
         private void btnExport_Click(object sender, EventArgs e)
         {
-            if ( lstFilelist.SelectedItems.Count == 0 )
+            if ( Filelist.Count == 0 )
             {
                 MessageBox.Show("Please select at least one file to export.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             List<string> command = new List<string>() { "Aseprite", "-b" };
+            if ( AllLayers )
+                command.Add("--all-layers");
 
-            foreach ( var file in lstFilelist.SelectedItems )
+            foreach ( var file in Filelist )
             {
                 string filename = file.ToString();
                 command.Add(filename);
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-                
+
                 UpdateOutputName(ref filename);
                 command.Add(filename);
 
@@ -135,9 +144,15 @@ namespace Aseprite_Multiple_Export
         private void UpdateOutputName(ref string filename)
         {
             string ext = Path.GetExtension(filename);
-            if (ExportType == ExportType.EveryFrame)
+            filename = filename.Replace(ext, ".png");
+            ext = ".png";
+
+            if ( ExportType == ExportType.EveryFrame )
             {
-                filename = filename.Replace(ext, "_{frame}.png");
+                if ( EveryLayer )
+                    filename = filename.Replace(filename, "{layer}_{frame}.png");
+                else
+                    filename = filename.Replace(ext, "_{frame}.png");
             }
             else
             {
@@ -145,7 +160,7 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void chkKeepChanges_CheckedChanged(object sender, EventArgs e)
+        private void basicControl_Changed(object sender, EventArgs e)
         {
             UpdateForm();
         }
@@ -160,14 +175,13 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void rdoEveryFrame_CheckedChanged(object sender, EventArgs e)
+        private void lstFilelist_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateForm();
-        }
-
-        private void rdoSpriteSheet_CheckedChanged(object sender, EventArgs e)
-        {
-            UpdateForm();
+            Filelist = new List<string>();
+            foreach ( var item in lstFilelist.SelectedItems )
+            {
+                Filelist.Add(item.ToString());
+            }
         }
     }
 }

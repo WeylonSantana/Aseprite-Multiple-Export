@@ -58,5 +58,29 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["ExportType"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AllLayers {
+            get {
+                return ((bool)(this["AllLayers"]));
+            }
+            set {
+                this["AllLayers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool EveryLayer {
+            get {
+                return ((bool)(this["EveryLayer"]));
+            }
+            set {
+                this["EveryLayer"] = value;
+            }
+        }
     }
 }

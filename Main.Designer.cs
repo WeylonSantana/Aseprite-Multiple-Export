@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             txtSearchFolder = new TextBox();
             lblSearchFolder = new Label();
             btnSearchFolder = new Button();
@@ -37,7 +38,12 @@
             rdoSpriteSheet = new RadioButton();
             rdoEveryFrame = new RadioButton();
             btnExport = new Button();
+            grpExportOptions = new GroupBox();
+            chkEveryLayer = new CheckBox();
+            chkAllLayers = new CheckBox();
+            toolTip = new ToolTip(components);
             grpExportTypes.SuspendLayout();
+            grpExportOptions.SuspendLayout();
             SuspendLayout();
             // 
             // txtSearchFolder
@@ -76,6 +82,7 @@
             lstFilelist.SelectionMode = SelectionMode.MultiSimple;
             lstFilelist.Size = new Size(529, 229);
             lstFilelist.TabIndex = 3;
+            lstFilelist.SelectedIndexChanged += lstFilelist_SelectedIndexChanged;
             // 
             // chkKeepChanges
             // 
@@ -85,8 +92,9 @@
             chkKeepChanges.Size = new Size(106, 19);
             chkKeepChanges.TabIndex = 4;
             chkKeepChanges.Text = "Keep Changes?";
+            toolTip.SetToolTip(chkKeepChanges, "Persist changes.");
             chkKeepChanges.UseVisualStyleBackColor = true;
-            chkKeepChanges.CheckedChanged += chkKeepChanges_CheckedChanged;
+            chkKeepChanges.CheckedChanged += basicControl_Changed;
             // 
             // grpExportTypes
             // 
@@ -108,8 +116,9 @@
             rdoSpriteSheet.TabIndex = 1;
             rdoSpriteSheet.TabStop = true;
             rdoSpriteSheet.Text = "Sprite Sheet";
+            toolTip.SetToolTip(rdoSpriteSheet, "Export the file as a spritesheet.");
             rdoSpriteSheet.UseVisualStyleBackColor = true;
-            rdoSpriteSheet.CheckedChanged += rdoSpriteSheet_CheckedChanged;
+            rdoSpriteSheet.CheckedChanged += basicControl_Changed;
             // 
             // rdoEveryFrame
             // 
@@ -120,8 +129,9 @@
             rdoEveryFrame.TabIndex = 0;
             rdoEveryFrame.TabStop = true;
             rdoEveryFrame.Text = "Every Frame";
+            toolTip.SetToolTip(rdoEveryFrame, "Export every frame of the selected files.");
             rdoEveryFrame.UseVisualStyleBackColor = true;
-            rdoEveryFrame.CheckedChanged += rdoEveryFrame_CheckedChanged;
+            rdoEveryFrame.CheckedChanged += basicControl_Changed;
             // 
             // btnExport
             // 
@@ -133,11 +143,47 @@
             btnExport.UseVisualStyleBackColor = true;
             btnExport.Click += btnExport_Click;
             // 
+            // grpExportOptions
+            // 
+            grpExportOptions.Controls.Add(chkEveryLayer);
+            grpExportOptions.Controls.Add(chkAllLayers);
+            grpExportOptions.Location = new Point(12, 332);
+            grpExportOptions.Name = "grpExportOptions";
+            grpExportOptions.Size = new Size(529, 50);
+            grpExportOptions.TabIndex = 7;
+            grpExportOptions.TabStop = false;
+            grpExportOptions.Text = "Export Options";
+            // 
+            // chkEveryLayer
+            // 
+            chkEveryLayer.AutoSize = true;
+            chkEveryLayer.Location = new Point(88, 22);
+            chkEveryLayer.Name = "chkEveryLayer";
+            chkEveryLayer.Size = new Size(85, 19);
+            chkEveryLayer.TabIndex = 1;
+            chkEveryLayer.Text = "Every Layer";
+            toolTip.SetToolTip(chkEveryLayer, "Export each frame of each layer into a different file.");
+            chkEveryLayer.UseVisualStyleBackColor = true;
+            chkEveryLayer.CheckedChanged += basicControl_Changed;
+            // 
+            // chkAllLayers
+            // 
+            chkAllLayers.AutoSize = true;
+            chkAllLayers.Location = new Point(6, 22);
+            chkAllLayers.Name = "chkAllLayers";
+            chkAllLayers.Size = new Size(76, 19);
+            chkAllLayers.TabIndex = 0;
+            chkAllLayers.Text = "All Layers";
+            toolTip.SetToolTip(chkAllLayers, "Force all layers to be visible.");
+            chkAllLayers.UseVisualStyleBackColor = true;
+            chkAllLayers.CheckedChanged += basicControl_Changed;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(983, 622);
+            Controls.Add(grpExportOptions);
             Controls.Add(btnExport);
             Controls.Add(grpExportTypes);
             Controls.Add(chkKeepChanges);
@@ -147,10 +193,13 @@
             Controls.Add(txtSearchFolder);
             MinimumSize = new Size(800, 600);
             Name = "Main";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Aseprite Multiple Export";
             Load += Main_Load;
             grpExportTypes.ResumeLayout(false);
             grpExportTypes.PerformLayout();
+            grpExportOptions.ResumeLayout(false);
+            grpExportOptions.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -166,5 +215,9 @@
         private RadioButton rdoSpriteSheet;
         private RadioButton rdoEveryFrame;
         private Button btnExport;
+        private GroupBox grpExportOptions;
+        private CheckBox chkAllLayers;
+        private CheckBox chkEveryLayer;
+        private ToolTip toolTip;
     }
 }
