@@ -23,6 +23,11 @@
             "name": "Aseprite",
             "cmd": "Aseprite",
             "args": true
+          },
+          {
+            "name": "cmd.exe",
+            "cmd": "cmd.exe",
+            "args": true
           }
         ]
       }
@@ -30,8 +35,8 @@
     "windows": [
       {
         "title": "aseprite-multiple-export",
-        "minWidth": 1280,
-        "minHeight": 768,
+        "minWidth": 800,
+        "minHeight": 600,
         "center": true,
         "theme": "Dark"
       }
@@ -43,7 +48,8 @@
       "active": true,
       "targets": "all",
       "identifier": "aseprite-multiple-export",
-      "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+      "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+      "resources": ["assets"]
     }
   }
 }

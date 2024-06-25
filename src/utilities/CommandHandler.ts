@@ -8,7 +8,8 @@ import { AppState } from '../App';
 export default class CommandHandler {
   async executeCommand(command: string, args: string[], cwd?: string, closeHandler?: () => void) {
     console.log(`Executing command: ${command} ${args.join(' ')}`);
-    const cmd = new Command(command, args, { cwd });
+    const cmd = new Command(command, args, { cwd, encoding: 'utf8' });
+    cmd.stdout.on('data', (data) => console.log(data.toString()));
 
     return new Promise<void>((resolve, reject) => {
       if (closeHandler) {
@@ -21,12 +22,16 @@ export default class CommandHandler {
       }
 
       cmd.on('error', reject);
+      cmd.stderr.on('data', (data) => {
+        console.error(data);
+        reject(data);
+      });
       cmd.execute().catch(reject);
     });
   }
 
   async exportSingleFile(file: FileEntry, data: AppState) {
-    const { scale, exportType, selectedLayers, options } = data;
+    const { scale, exportType, selectedLayers, options, fileListPath } = data;
     const { sheetType, sheetRows, sheetColumns, exportJson, splitLayers, allLayers } = options;
     const outputName = GetAsepriteOutputName(file, scale);
 
@@ -57,6 +62,13 @@ export default class CommandHandler {
     if (allLayers) args.splice(1, 0, '--all-layers');
     args.push('--scale', `${scale}`);
 
-    return await this.executeCommand('Aseprite', args, `${file.path.split(path.sep).slice(0, -1).join(path.sep)}`);
+    // return await this.executeCommand('Aseprite', args, `${file.path.split(path.sep).slice(0, -1).join(path.sep)}`);
+    const resourceDir = (await path.resourceDir()).substring(4);
+    const scriptPath = await path.join(resourceDir, 'assets', 'Export.script.lua');
+    return await this.executeCommand(
+      'Aseprite',
+      ['-b', '--script-param', `filename=${file.name}`, '--script-param', `scale=${scale}`, '--script', `"${scriptPath}"`],
+      fileListPath
+    );
   }
 }
