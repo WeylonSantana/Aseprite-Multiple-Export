@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 
 namespace Aseprite_Multiple_Export
@@ -14,6 +15,7 @@ namespace Aseprite_Multiple_Export
         private List<string> Filelist = new List<string>();
         private Process process;
         private bool _isLoading = false;
+        private string _lastSelectedItem = string.Empty;
 
         public Main()
         {
@@ -187,11 +189,54 @@ namespace Aseprite_Multiple_Export
 
         private void lstFilelist_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Filelist = new List<string>();
+            // add if not exists
             foreach ( var item in lstFilelist.SelectedItems )
             {
-                Filelist.Add(item.ToString());
+                if ( !Filelist.Contains(item.ToString()) )
+                    Filelist.Add(item.ToString());
             }
+
+            // remove if not selected
+            for ( int i = 0; i < Filelist.Count; i++ )
+            {
+                if ( !lstFilelist.SelectedItems.Contains(Filelist[i]) )
+                    Filelist.RemoveAt(i);
+            }
+
+            if ( Filelist.Count > 0 )
+            {
+                _lastSelectedItem = Filelist[Filelist.Count - 1];
+                seeLayersMenuItem.Text = $"See Layers of {_lastSelectedItem}";
+            }
+            else
+            {
+                _lastSelectedItem = string.Empty;
+                seeLayersMenuItem.Text = "Select a file to see layers";
+            }
+        }
+
+        private void seeLayersMenuItem_Click(object sender, EventArgs e)
+        {
+            if ( string.IsNullOrEmpty(_lastSelectedItem) )
+                return;
+
+            //lets create only the json file for we see the layers
+            string outputName = _lastSelectedItem.Replace(Path.GetExtension(_lastSelectedItem), ".json");
+            string finalCommand = $"-b --list-layers";
+            if (AllLayers) finalCommand += " --all-layers ";
+            finalCommand += $" {_lastSelectedItem} --data {outputName} --format json-array";
+            ProcessCommand(finalCommand);
+
+            var fileData = File.ReadAllText(Path.Combine(FolderPath, outputName));
+            AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>();
+            // remove file
+            File.Delete(Path.Combine(FolderPath, outputName));
+
+            List<AsepriteLayer> layers = json.meta.layers;
+            List<LayerNode> nodes = Utilities.BuildLayerTree(layers);
+            List<string> lines = Utilities.FormatLayerTree(nodes);
+            lstLayerList.Items.Clear();
+            lstLayerList.Items.AddRange(lines.ToArray());
         }
     }
 }

@@ -33,6 +33,8 @@
             lblSearchFolder = new Label();
             btnSearchFolder = new Button();
             lstFilelist = new ListBox();
+            ctxMenuFileList = new ContextMenuStrip(components);
+            seeLayersMenuItem = new ToolStripMenuItem();
             chkKeepChanges = new CheckBox();
             grpExportTypes = new GroupBox();
             rdoSpriteSheet = new RadioButton();
@@ -44,6 +46,10 @@
             toolTip = new ToolTip(components);
             lblScale = new Label();
             nudScale = new NumericUpDown();
+            lstLayerList = new ListBox();
+            lblFileList = new Label();
+            lblLayerList = new Label();
+            ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
@@ -78,14 +84,28 @@
             // 
             // lstFilelist
             // 
+            lstFilelist.ContextMenuStrip = ctxMenuFileList;
             lstFilelist.FormattingEnabled = true;
             lstFilelist.ItemHeight = 15;
-            lstFilelist.Location = new Point(12, 35);
+            lstFilelist.Location = new Point(12, 57);
             lstFilelist.Name = "lstFilelist";
             lstFilelist.SelectionMode = SelectionMode.MultiSimple;
-            lstFilelist.Size = new Size(529, 229);
+            lstFilelist.Size = new Size(387, 214);
             lstFilelist.TabIndex = 3;
             lstFilelist.SelectedIndexChanged += lstFilelist_SelectedIndexChanged;
+            // 
+            // ctxMenuFileList
+            // 
+            ctxMenuFileList.Items.AddRange(new ToolStripItem[] { seeLayersMenuItem });
+            ctxMenuFileList.Name = "ctxMenuFileList";
+            ctxMenuFileList.Size = new Size(201, 26);
+            // 
+            // seeLayersMenuItem
+            // 
+            seeLayersMenuItem.Name = "seeLayersMenuItem";
+            seeLayersMenuItem.Size = new Size(200, 22);
+            seeLayersMenuItem.Text = "Select a file to see layers";
+            seeLayersMenuItem.Click += seeLayersMenuItem_Click;
             // 
             // chkKeepChanges
             // 
@@ -103,9 +123,9 @@
             // 
             grpExportTypes.Controls.Add(rdoSpriteSheet);
             grpExportTypes.Controls.Add(rdoEveryFrame);
-            grpExportTypes.Location = new Point(12, 270);
+            grpExportTypes.Location = new Point(12, 277);
             grpExportTypes.Name = "grpExportTypes";
-            grpExportTypes.Size = new Size(529, 56);
+            grpExportTypes.Size = new Size(387, 56);
             grpExportTypes.TabIndex = 5;
             grpExportTypes.TabStop = false;
             grpExportTypes.Text = "Export Types";
@@ -150,9 +170,9 @@
             // 
             grpExportOptions.Controls.Add(chkEveryLayer);
             grpExportOptions.Controls.Add(chkAllLayers);
-            grpExportOptions.Location = new Point(12, 332);
+            grpExportOptions.Location = new Point(12, 339);
             grpExportOptions.Name = "grpExportOptions";
-            grpExportOptions.Size = new Size(529, 50);
+            grpExportOptions.Size = new Size(387, 50);
             grpExportOptions.TabIndex = 7;
             grpExportOptions.TabStop = false;
             grpExportOptions.Text = "Export Options";
@@ -200,11 +220,41 @@
             nudScale.Value = new decimal(new int[] { 1, 0, 0, 0 });
             nudScale.ValueChanged += basicControl_Changed;
             // 
+            // lstLayerList
+            // 
+            lstLayerList.FormattingEnabled = true;
+            lstLayerList.ItemHeight = 15;
+            lstLayerList.Location = new Point(405, 57);
+            lstLayerList.Name = "lstLayerList";
+            lstLayerList.Size = new Size(217, 214);
+            lstLayerList.TabIndex = 10;
+            // 
+            // lblFileList
+            // 
+            lblFileList.AutoSize = true;
+            lblFileList.Location = new Point(12, 36);
+            lblFileList.Name = "lblFileList";
+            lblFileList.Size = new Size(49, 15);
+            lblFileList.TabIndex = 11;
+            lblFileList.Text = "File List:";
+            // 
+            // lblLayerList
+            // 
+            lblLayerList.AutoSize = true;
+            lblLayerList.Location = new Point(405, 36);
+            lblLayerList.Name = "lblLayerList";
+            lblLayerList.Size = new Size(59, 15);
+            lblLayerList.TabIndex = 12;
+            lblLayerList.Text = "Layer List:";
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(784, 561);
+            Controls.Add(lblLayerList);
+            Controls.Add(lblFileList);
+            Controls.Add(lstLayerList);
             Controls.Add(nudScale);
             Controls.Add(lblScale);
             Controls.Add(grpExportOptions);
@@ -222,6 +272,7 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Aseprite Multiple Export";
             Load += Main_Load;
+            ctxMenuFileList.ResumeLayout(false);
             grpExportTypes.ResumeLayout(false);
             grpExportTypes.PerformLayout();
             grpExportOptions.ResumeLayout(false);
@@ -248,5 +299,10 @@
         private ToolTip toolTip;
         private Label lblScale;
         private NumericUpDown nudScale;
+        private ListBox lstLayerList;
+        private Label lblFileList;
+        private Label lblLayerList;
+        private ContextMenuStrip ctxMenuFileList;
+        private ToolStripMenuItem seeLayersMenuItem;
     }
 }
