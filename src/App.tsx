@@ -238,9 +238,8 @@ export default class App extends Component<any, AppState> {
   }
 
   render() {
-    const { keepConfig, fileListPath, fileList, layerList, exportType, options } = this.state;
-    const { selectedFiles, selectedLayerFile, selectedLayers } = this.state;
-    const { exportLoading, layersLoading } = this.state;
+    const { keepConfig, fileListPath, exportType, options } = this.state;
+    const { selectedFiles, selectedLayers, exportLoading } = this.state;
     const { exportJson, sheetType, splitLayers, allLayers } = options;
 
     return (
@@ -272,12 +271,7 @@ export default class App extends Component<any, AppState> {
 
         {/* Aseprite File List */}
         <Filelist
-          fileList={fileList}
-          layerList={layerList}
-          selectedFiles={selectedFiles}
-          selectedLayerFile={selectedLayerFile}
-          selectedLayers={selectedLayers}
-          layersLoading={layersLoading}
+          data={this.state}
           loadLayerList={(file) => this.loadLayerList(file)}
           selectFiles={(files) => this.setState({ selectedFiles: files })}
           selectLayer={(layer, file) => {

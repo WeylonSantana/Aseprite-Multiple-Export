@@ -1,13 +1,9 @@
 import { Component } from 'react';
 import { FileEntry } from '@tauri-apps/api/fs';
+import { AppState } from '../App';
 
 interface FilelistProps {
-  fileList?: FileEntry[];
-  layerList?: string[];
-  selectedFiles?: FileEntry[];
-  selectedLayerFile?: FileEntry;
-  selectedLayers?: string[];
-  layersLoading?: boolean;
+  data: AppState;
 
   loadLayerList: (file?: FileEntry) => void;
   selectFiles: (files: FileEntry[]) => void;
@@ -16,7 +12,8 @@ interface FilelistProps {
 
 export default class Filelist extends Component<FilelistProps> {
   render() {
-    const { fileList, layerList, layersLoading, selectedFiles, selectedLayerFile, selectedLayers, loadLayerList, selectFiles, selectLayer } = this.props;
+    const { data, loadLayerList, selectFiles, selectLayer } = this.props;
+    const { fileList, layerList, layersLoading, selectedFiles, selectedLayerFile, selectedLayers } = data;
 
     return (
       <>
