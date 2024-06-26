@@ -15,9 +15,10 @@ namespace Aseprite_Multiple_Export
         private SheetExportType SheetExportType;
         private int SheetSplitCount;
 
-        private List<string> _files = new List<string>();
-        private string _selectedLayer = string.Empty;
         private Process process;
+
+        private List<string> _files = new List<string>();
+        private List<string> _layers = new List<string>();
         private bool _isLoading = false;
         private string _lastSelectedItem = string.Empty;
         private string _selectedLayerFile = string.Empty;
@@ -159,18 +160,27 @@ namespace Aseprite_Multiple_Export
                 return;
             }
 
-            if ( _selectedLayer == string.Empty )
+            if ( _layers.Count == 0 || (_layers.Count > 0 && !EveryLayer) )
             {
                 foreach ( var file in _files )
                 {
                     List<string> command = new List<string>() { "Aseprite", "-b" };
 
-                    if ( AllLayers )
-                        command.Add("--all-layers");
-
                     string filename = file.ToString();
                     if ( filename == default )
                         continue;
+
+                    if ( AllLayers && _layers.Count == 0 )
+                    {
+                        command.Add("--all-layers");
+                    }
+                    else if ( _layers.Count > 0 && !EveryLayer )
+                    {
+                        foreach (var layer in _layers)
+                        {
+                            command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
+                        }
+                    }
 
                     command.Add($"\"{filename}\"");
                     command.Add($"--scale {Scale}");
@@ -192,40 +202,41 @@ namespace Aseprite_Multiple_Export
                             command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
                     }
 
-                    lstDebug.Items.Add($"Exporting {filename} to {outputName}...");
                     ProcessCommand(string.Join(" ", command));
                     lstDebug.Items.Add($"Exported {filename} to {outputName} successfully.");
                 }
             }
             else
             {
-                List<string> command = new List<string>() { "Aseprite", "-b" };
-                var exportedPath = Path.Combine($"{Scale}x", $"{_selectedLayer}.png");
-                if( ExportType == ExportType.EveryFrame)
-                    exportedPath = exportedPath.Replace(".png", "_{frame}.png");
-                lstDebug.Items.Add($"Exporting layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath}...");
-
-                command.Add($"--layer \"{_selectedLayer.Replace("\\", "/")}\"");
-                command.Add($"\"{_selectedLayerFile}\"");
-                command.Add($"--scale {Scale}");
-                command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-                command.Add($"\"{ exportedPath }\"");
-
-                if ( ExportType == ExportType.SpriteSheet )
+                foreach ( var layer in _layers )
                 {
-                    command.Add($"--{Enum.GetName(typeof(SheetExportType), SheetExportType)}");
-                    if ( SheetExportType == SheetExportType.Rows )
-                        command.Add($"--columns {SheetSplitCount}");
+                    List<string> command = new List<string>() { "Aseprite", "-b" };
+                    var exportedPath = Path.Combine($"{Scale}x", $"{layer}.png");
+                    if ( ExportType == ExportType.EveryFrame )
+                        exportedPath = exportedPath.Replace(".png", "_{frame}.png");
 
-                    if ( SheetExportType == SheetExportType.Columns )
-                        command.Add($"--rows {SheetSplitCount}");
+                    command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
+                    command.Add($"\"{_selectedLayerFile}\"");
+                    command.Add($"--scale {Scale}");
+                    command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
+                    command.Add($"\"{exportedPath}\"");
 
-                    if ( ExportJson )
-                        command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
+                    if ( ExportType == ExportType.SpriteSheet )
+                    {
+                        command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType).ToLowerInvariant()}");
+                        if ( SheetExportType == SheetExportType.Rows )
+                            command.Add($"--sheet-columns {SheetSplitCount}");
+
+                        if ( SheetExportType == SheetExportType.Columns )
+                            command.Add($"--sheet-rows {SheetSplitCount}");
+
+                        if ( ExportJson )
+                            command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
+                    }
+
+                    lstDebug.Items.Add($"Exported layer {layer} from {_selectedLayerFile} to {exportedPath} successfully.");
+                    ProcessCommand(string.Join(" ", command));
                 }
-
-                ProcessCommand(string.Join(" ", command));
-                lstDebug.Items.Add($"Exported layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath} successfully.");
             }
 
             lstDebug.Items.Add($"Export completed successfully for type {ExportType}.");
@@ -325,27 +336,22 @@ namespace Aseprite_Multiple_Export
 
         private void lstLayerList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if ( lstLayerList.SelectedItem == default )
+            _layers.Clear();
+            foreach ( var item in lstLayerList.SelectedItems )
             {
-                _selectedLayer = string.Empty;
-                chkEveryLayer.Enabled = true;
-                return;
+                _layers.Add(item.ToString());
             }
 
-            if ( lstLayerList.SelectedItem == _selectedLayer )
+            if ( _layers.Count == 0 )
             {
                 lstFilelist.Enabled = true;
-                lstLayerList.SelectedItems.Clear();
-                return;
             }
-
-            lstFilelist.SelectedItems.Clear();
-            lstFilelist.SelectedItem = _selectedLayerFile;
-            lstFilelist.Enabled = false;
-
-            _selectedLayer = lstLayerList.SelectedItem.ToString();
-            chkEveryLayer.Checked = false;
-            chkEveryLayer.Enabled = false;
+            else
+            {
+                lstFilelist.SelectedItems.Clear();
+                lstFilelist.SelectedItem = _selectedLayerFile;
+                lstFilelist.Enabled = false;
+            }
         }
 
         private void btnResetOutput_Click(object sender, EventArgs e)

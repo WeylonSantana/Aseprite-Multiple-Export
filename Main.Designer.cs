@@ -219,6 +219,7 @@
             lstLayerList.ItemHeight = 15;
             lstLayerList.Location = new Point(483, 57);
             lstLayerList.Name = "lstLayerList";
+            lstLayerList.SelectionMode = SelectionMode.MultiSimple;
             lstLayerList.Size = new Size(217, 214);
             lstLayerList.TabIndex = 10;
             toolTip.SetToolTip(lstLayerList, "List of visible layers, if you see nothing then check \"All Layers\" and try again.");
