@@ -41,7 +41,7 @@
 
         private static void TransverseLayerTree(ref List<string> lines, LayerNode node, string parentPath)
         {
-            var currentPath = parentPath.Length > 0 ? $"{parentPath}/{node.Name}" : node.Name;
+            var currentPath = parentPath.Length > 0 ? Path.Combine(parentPath, node.Name) : node.Name;
 
             if (node.Children.Count == 0 )
             {

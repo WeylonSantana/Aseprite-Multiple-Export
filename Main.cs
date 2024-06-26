@@ -12,10 +12,12 @@ namespace Aseprite_Multiple_Export
         private bool EveryLayer;
         private int Scale;
 
-        private List<string> Filelist = new List<string>();
+        private List<string> _files = new List<string>();
+        private string _selectedLayer = string.Empty;
         private Process process;
         private bool _isLoading = false;
         private string _lastSelectedItem = string.Empty;
+        private string _selectedLayerFile = string.Empty;
 
         public Main()
         {
@@ -86,7 +88,7 @@ namespace Aseprite_Multiple_Export
 
             //Updating file list
             FolderPath = txtSearchFolder.Text;
-            if ( !string.IsNullOrEmpty(FolderPath) )
+            if ( !string.IsNullOrEmpty(FolderPath) && lstFilelist.Items.Count == 0 )
             {
                 if ( Directory.Exists(FolderPath) )
                 {
@@ -95,7 +97,7 @@ namespace Aseprite_Multiple_Export
                         .. Directory.EnumerateFiles(FolderPath, "*.ase").ToList(),
                         .. Directory.EnumerateFiles(FolderPath, "*.aseprite").ToList(),
                     ];
-                    lstFilelist.Items.Clear();
+
                     if ( files.Count > 0 )
                     {
                         foreach ( var file in files )
@@ -122,30 +124,44 @@ namespace Aseprite_Multiple_Export
 
         private void btnExport_Click(object sender, EventArgs e)
         {
-            if ( Filelist.Count == 0 )
+            if ( _files.Count == 0 )
             {
                 MessageBox.Show("Please select at least one file to export.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             List<string> command = new List<string>() { "Aseprite", "-b" };
-            if ( AllLayers )
-                command.Add("--all-layers");
 
-            foreach ( var file in Filelist )
+            if ( _selectedLayer == string.Empty )
             {
-                command.Add(file.ToString());
+                if ( AllLayers )
+                    command.Add("--all-layers");
+
+                foreach ( var file in _files )
+                {
+                    string filename = file.ToString();
+                    if ( filename == default )
+                        continue;
+
+                    command.Add(filename);
+                    command.Add($"--scale {Scale}");
+                    command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
+
+                    string outputName = UpdateOutputName(filename);
+                    command.Add(outputName);
+
+                    ProcessCommand(string.Join(" ", command));
+                }
+            }
+            else
+            {
+                command.Add($"--layer {_selectedLayer.Replace("\\", "/")}");
+                command.Add(_selectedLayerFile);
                 command.Add($"--scale {Scale}");
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-
-                string outputName = UpdateOutputName(file.ToString());
-                command.Add(outputName);
-
-                string finalCommand = string.Join(" ", command);
-                ProcessCommand(finalCommand);
+                command.Add(Path.Combine($"{Scale}x", $"{_selectedLayer}_{{frame}}.png"));
+                ProcessCommand(string.Join(" ", command));
             }
-
-            var exportedPath = Path.Combine(FolderPath, $"{Scale}x");
 
             MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -187,31 +203,28 @@ namespace Aseprite_Multiple_Export
             }
         }
 
-        private void lstFilelist_SelectedIndexChanged(object sender, EventArgs e)
+        private void lstFilelist_MouseDown(object sender, MouseEventArgs e)
         {
-            // add if not exists
-            foreach ( var item in lstFilelist.SelectedItems )
-            {
-                if ( !Filelist.Contains(item.ToString()) )
-                    Filelist.Add(item.ToString());
-            }
+            Point mousePos = e.Location;
+            int index = lstFilelist.IndexFromPoint(mousePos);
 
-            // remove if not selected
-            for ( int i = 0; i < Filelist.Count; i++ )
+            if ( index != ListBox.NoMatches )
             {
-                if ( !lstFilelist.SelectedItems.Contains(Filelist[i]) )
-                    Filelist.RemoveAt(i);
-            }
-
-            if ( Filelist.Count > 0 )
-            {
-                _lastSelectedItem = Filelist[Filelist.Count - 1];
+                _lastSelectedItem = lstFilelist.Items[index].ToString();
                 seeLayersMenuItem.Text = $"See Layers of {_lastSelectedItem}";
             }
             else
             {
-                _lastSelectedItem = string.Empty;
                 seeLayersMenuItem.Text = "Select a file to see layers";
+            }
+        }
+
+        private void lstFilelist_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            _files.Clear();
+            foreach ( var item in lstFilelist.SelectedItems)
+            {
+                _files.Add(item.ToString());
             }
         }
 
@@ -223,7 +236,8 @@ namespace Aseprite_Multiple_Export
             //lets create only the json file for we see the layers
             string outputName = _lastSelectedItem.Replace(Path.GetExtension(_lastSelectedItem), ".json");
             string finalCommand = $"-b --list-layers";
-            if (AllLayers) finalCommand += " --all-layers ";
+            if ( AllLayers )
+                finalCommand += " --all-layers ";
             finalCommand += $" {_lastSelectedItem} --data {outputName} --format json-array";
             ProcessCommand(finalCommand);
 
@@ -237,6 +251,26 @@ namespace Aseprite_Multiple_Export
             List<string> lines = Utilities.FormatLayerTree(nodes);
             lstLayerList.Items.Clear();
             lstLayerList.Items.AddRange(lines.ToArray());
+            _selectedLayerFile = _lastSelectedItem;
+        }
+
+        private void lstLayerList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if( lstLayerList.SelectedItem == default) 
+                return;
+
+            if ( lstLayerList.SelectedItem == _selectedLayer )
+            {
+                lstFilelist.Enabled = true;
+                lstLayerList.SelectedItems.Clear();
+                return;
+            }
+
+            lstFilelist.SelectedItems.Clear();
+            lstFilelist.SelectedItem = _selectedLayerFile;
+            lstFilelist.Enabled = false;
+
+            _selectedLayer = lstLayerList.SelectedItem.ToString();
         }
     }
 }

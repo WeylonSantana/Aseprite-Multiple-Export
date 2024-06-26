@@ -44,9 +44,9 @@
             chkEveryLayer = new CheckBox();
             chkAllLayers = new CheckBox();
             toolTip = new ToolTip(components);
+            lstLayerList = new ListBox();
             lblScale = new Label();
             nudScale = new NumericUpDown();
-            lstLayerList = new ListBox();
             lblFileList = new Label();
             lblLayerList = new Label();
             ctxMenuFileList.SuspendLayout();
@@ -93,6 +93,7 @@
             lstFilelist.Size = new Size(387, 214);
             lstFilelist.TabIndex = 3;
             lstFilelist.SelectedIndexChanged += lstFilelist_SelectedIndexChanged;
+            lstFilelist.MouseDown += lstFilelist_MouseDown;
             // 
             // ctxMenuFileList
             // 
@@ -201,6 +202,17 @@
             chkAllLayers.UseVisualStyleBackColor = true;
             chkAllLayers.CheckedChanged += basicControl_Changed;
             // 
+            // lstLayerList
+            // 
+            lstLayerList.FormattingEnabled = true;
+            lstLayerList.ItemHeight = 15;
+            lstLayerList.Location = new Point(405, 57);
+            lstLayerList.Name = "lstLayerList";
+            lstLayerList.Size = new Size(217, 214);
+            lstLayerList.TabIndex = 10;
+            toolTip.SetToolTip(lstLayerList, "List of visible layers, if you see nothing then check \"All Layers\" and try again.");
+            lstLayerList.SelectedIndexChanged += lstLayerList_SelectedIndexChanged;
+            // 
             // lblScale
             // 
             lblScale.AutoSize = true;
@@ -219,15 +231,6 @@
             nudScale.TabIndex = 9;
             nudScale.Value = new decimal(new int[] { 1, 0, 0, 0 });
             nudScale.ValueChanged += basicControl_Changed;
-            // 
-            // lstLayerList
-            // 
-            lstLayerList.FormattingEnabled = true;
-            lstLayerList.ItemHeight = 15;
-            lstLayerList.Location = new Point(405, 57);
-            lstLayerList.Name = "lstLayerList";
-            lstLayerList.Size = new Size(217, 214);
-            lstLayerList.TabIndex = 10;
             // 
             // lblFileList
             // 
