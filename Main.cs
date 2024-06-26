@@ -278,7 +278,10 @@ namespace Aseprite_Multiple_Export
         private void lstLayerList_SelectedIndexChanged(object sender, EventArgs e)
         {
             if ( lstLayerList.SelectedItem == default )
+            {
+                _selectedLayer = string.Empty;
                 return;
+            }
 
             if ( lstLayerList.SelectedItem == _selectedLayer )
             {
