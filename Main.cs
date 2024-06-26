@@ -12,6 +12,8 @@ namespace Aseprite_Multiple_Export
         private bool EveryLayer;
         private int Scale;
         private bool ExportJson;
+        private SheetExportType SheetExportType;
+        private int SheetSplitCount;
 
         private List<string> _files = new List<string>();
         private string _selectedLayer = string.Empty;
@@ -68,6 +70,10 @@ namespace Aseprite_Multiple_Export
             chkEveryLayer.Checked = Properties.Settings.Default.EveryLayer;
             nudScale.Value = Properties.Settings.Default.Scale;
             chkExportJson.Checked = Properties.Settings.Default.ExportJson;
+            nudSplit.Value = Properties.Settings.Default.SheetSplitCount;
+
+            cmbSheetExportType.Items.AddRange(Enum.GetNames(typeof(SheetExportType)));
+            cmbSheetExportType.SelectedIndex = Properties.Settings.Default.SheetExportType;
 
             UpdateForm();
             _isLoading = false;
@@ -86,6 +92,8 @@ namespace Aseprite_Multiple_Export
             Properties.Settings.Default.EveryLayer = KeepChanges ? chkEveryLayer.Checked : default;
             Properties.Settings.Default.Scale = KeepChanges ? (int) nudScale.Value : default;
             Properties.Settings.Default.ExportJson = KeepChanges ? chkExportJson.Checked : default;
+            Properties.Settings.Default.SheetExportType = KeepChanges ? cmbSheetExportType.SelectedIndex : default;
+            Properties.Settings.Default.SheetSplitCount = KeepChanges ? (int) nudSplit.Value : default;
 
             Properties.Settings.Default.Save();
             if ( KeepChanges )
@@ -125,10 +133,19 @@ namespace Aseprite_Multiple_Export
             }
 
             ExportType = rdoEveryFrame.Checked ? ExportType.EveryFrame : ExportType.SpriteSheet;
+
             AllLayers = chkAllLayers.Checked;
             EveryLayer = chkEveryLayer.Checked;
             Scale = (int) nudScale.Value;
+
+            SheetExportType = (SheetExportType) cmbSheetExportType.SelectedIndex;
+            SheetSplitCount = (int) nudSplit.Value;
             ExportJson = chkExportJson.Checked;
+
+            grpSpritesheetOptions.Visible = ExportType == ExportType.SpriteSheet;
+            nudSplit.Visible = SheetExportType == SheetExportType.Rows || SheetExportType == SheetExportType.Columns;
+            lblSplit.Visible = SheetExportType == SheetExportType.Rows || SheetExportType == SheetExportType.Columns;
+            lblSplit.Text = SheetExportType == SheetExportType.Rows ? "Columns" : "Rows";
 
             Main_Save();
         }
@@ -162,8 +179,18 @@ namespace Aseprite_Multiple_Export
                     string outputName = UpdateOutputName(filename);
                     command.Add($"\"{outputName}\"");
 
-                    if ( ExportType == ExportType.SpriteSheet && ExportJson)
-                        command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
+                    if ( ExportType  == ExportType.SpriteSheet)
+                    {
+                        command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType).ToLowerInvariant()}");
+                        if (SheetExportType == SheetExportType.Rows)
+                            command.Add($"--sheet-columns {SheetSplitCount}");
+
+                        if (SheetExportType == SheetExportType.Columns)
+                            command.Add($"--sheet-rows {SheetSplitCount}");
+
+                        if (ExportJson)
+                            command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
+                    }
 
                     lstDebug.Items.Add($"Exporting {filename} to {outputName}...");
                     ProcessCommand(string.Join(" ", command));
@@ -184,8 +211,18 @@ namespace Aseprite_Multiple_Export
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
                 command.Add($"\"{ exportedPath }\"");
 
-                if ( ExportType == ExportType.SpriteSheet && ExportJson )
-                    command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
+                if ( ExportType == ExportType.SpriteSheet )
+                {
+                    command.Add($"--{Enum.GetName(typeof(SheetExportType), SheetExportType)}");
+                    if ( SheetExportType == SheetExportType.Rows )
+                        command.Add($"--columns {SheetSplitCount}");
+
+                    if ( SheetExportType == SheetExportType.Columns )
+                        command.Add($"--rows {SheetSplitCount}");
+
+                    if ( ExportJson )
+                        command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
+                }
 
                 ProcessCommand(string.Join(" ", command));
                 lstDebug.Items.Add($"Exported layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath} successfully.");

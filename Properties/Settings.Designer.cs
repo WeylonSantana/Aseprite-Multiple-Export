@@ -106,5 +106,29 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["ExportJson"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int SheetExportType {
+            get {
+                return ((int)(this["SheetExportType"]));
+            }
+            set {
+                this["SheetExportType"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int SheetSplitCount {
+            get {
+                return ((int)(this["SheetSplitCount"]));
+            }
+            set {
+                this["SheetSplitCount"] = value;
+            }
+        }
     }
 }

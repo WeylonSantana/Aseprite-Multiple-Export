@@ -4,6 +4,15 @@
     SpriteSheet,
 }
 
+public enum SheetExportType
+{
+    Horizontal,
+    Vertical,
+    Rows,
+    Columns,
+    Packed,
+}
+
 public class AsepriteJsonFile
 {
     public List<AsepriteFrame> frames { get; set; }

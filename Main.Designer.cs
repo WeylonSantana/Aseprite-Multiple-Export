@@ -53,12 +53,17 @@
             lblDebug = new Label();
             btnResetOutput = new Button();
             grpSpritesheetOptions = new GroupBox();
+            lblSplit = new Label();
+            nudSplit = new NumericUpDown();
+            lblExportType = new Label();
+            cmbSheetExportType = new ComboBox();
             chkExportJson = new CheckBox();
             ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             grpSpritesheetOptions.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) nudSplit).BeginInit();
             SuspendLayout();
             // 
             // txtSearchFolder
@@ -96,7 +101,7 @@
             lstFilelist.Location = new Point(12, 57);
             lstFilelist.Name = "lstFilelist";
             lstFilelist.SelectionMode = SelectionMode.MultiSimple;
-            lstFilelist.Size = new Size(387, 214);
+            lstFilelist.Size = new Size(449, 214);
             lstFilelist.TabIndex = 3;
             lstFilelist.SelectedIndexChanged += lstFilelist_SelectedIndexChanged;
             lstFilelist.MouseDown += lstFilelist_MouseDown;
@@ -212,7 +217,7 @@
             // 
             lstLayerList.FormattingEnabled = true;
             lstLayerList.ItemHeight = 15;
-            lstLayerList.Location = new Point(405, 57);
+            lstLayerList.Location = new Point(483, 57);
             lstLayerList.Name = "lstLayerList";
             lstLayerList.Size = new Size(217, 214);
             lstLayerList.TabIndex = 10;
@@ -250,7 +255,7 @@
             // lblLayerList
             // 
             lblLayerList.AutoSize = true;
-            lblLayerList.Location = new Point(405, 36);
+            lblLayerList.Location = new Point(483, 36);
             lblLayerList.Name = "lblLayerList";
             lblLayerList.Size = new Size(59, 15);
             lblLayerList.TabIndex = 12;
@@ -286,18 +291,57 @@
             // 
             // grpSpritesheetOptions
             // 
+            grpSpritesheetOptions.Controls.Add(lblSplit);
+            grpSpritesheetOptions.Controls.Add(nudSplit);
+            grpSpritesheetOptions.Controls.Add(lblExportType);
+            grpSpritesheetOptions.Controls.Add(cmbSheetExportType);
             grpSpritesheetOptions.Controls.Add(chkExportJson);
             grpSpritesheetOptions.Location = new Point(405, 277);
             grpSpritesheetOptions.Name = "grpSpritesheetOptions";
-            grpSpritesheetOptions.Size = new Size(217, 112);
+            grpSpritesheetOptions.Size = new Size(295, 112);
             grpSpritesheetOptions.TabIndex = 8;
             grpSpritesheetOptions.TabStop = false;
             grpSpritesheetOptions.Text = "Spritesheet Options";
             // 
+            // lblSplit
+            // 
+            lblSplit.AutoSize = true;
+            lblSplit.Location = new Point(154, 24);
+            lblSplit.Name = "lblSplit";
+            lblSplit.Size = new Size(100, 15);
+            lblSplit.TabIndex = 18;
+            lblSplit.Text = "lblSplit - see code";
+            // 
+            // nudSplit
+            // 
+            nudSplit.Location = new Point(154, 43);
+            nudSplit.Name = "nudSplit";
+            nudSplit.Size = new Size(120, 23);
+            nudSplit.TabIndex = 17;
+            nudSplit.ValueChanged += basicControl_Changed;
+            // 
+            // lblExportType
+            // 
+            lblExportType.AutoSize = true;
+            lblExportType.Location = new Point(11, 24);
+            lblExportType.Name = "lblExportType";
+            lblExportType.Size = new Size(71, 15);
+            lblExportType.TabIndex = 16;
+            lblExportType.Text = "Export Type:";
+            // 
+            // cmbSheetExportType
+            // 
+            cmbSheetExportType.FormattingEnabled = true;
+            cmbSheetExportType.Location = new Point(11, 43);
+            cmbSheetExportType.Name = "cmbSheetExportType";
+            cmbSheetExportType.Size = new Size(121, 23);
+            cmbSheetExportType.TabIndex = 1;
+            cmbSheetExportType.SelectedIndexChanged += basicControl_Changed;
+            // 
             // chkExportJson
             // 
             chkExportJson.AutoSize = true;
-            chkExportJson.Location = new Point(6, 22);
+            chkExportJson.Location = new Point(11, 79);
             chkExportJson.Name = "chkExportJson";
             chkExportJson.Size = new Size(86, 19);
             chkExportJson.TabIndex = 0;
@@ -342,6 +386,7 @@
             ((System.ComponentModel.ISupportInitialize) nudScale).EndInit();
             grpSpritesheetOptions.ResumeLayout(false);
             grpSpritesheetOptions.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize) nudSplit).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -373,5 +418,9 @@
         private Button btnResetOutput;
         private GroupBox grpSpritesheetOptions;
         private CheckBox chkExportJson;
+        private Label lblSplit;
+        private NumericUpDown nudSplit;
+        private Label lblExportType;
+        private ComboBox cmbSheetExportType;
     }
 }
