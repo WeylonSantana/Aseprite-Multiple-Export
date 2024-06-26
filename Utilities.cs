@@ -49,6 +49,8 @@
             }
             else
             {
+                lines.Add(currentPath);
+
                 foreach ( var child in node.Children )
                 {
                     TransverseLayerTree(ref lines, child, currentPath);
