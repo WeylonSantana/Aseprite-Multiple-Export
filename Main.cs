@@ -11,6 +11,7 @@ namespace Aseprite_Multiple_Export
         private bool AllLayers;
         private bool EveryLayer;
         private int Scale;
+        private bool ExportJson;
 
         private List<string> _files = new List<string>();
         private string _selectedLayer = string.Empty;
@@ -66,6 +67,7 @@ namespace Aseprite_Multiple_Export
             chkAllLayers.Checked = Properties.Settings.Default.AllLayers;
             chkEveryLayer.Checked = Properties.Settings.Default.EveryLayer;
             nudScale.Value = Properties.Settings.Default.Scale;
+            chkExportJson.Checked = Properties.Settings.Default.ExportJson;
 
             UpdateForm();
             _isLoading = false;
@@ -83,6 +85,7 @@ namespace Aseprite_Multiple_Export
             Properties.Settings.Default.AllLayers = KeepChanges ? chkAllLayers.Checked : default;
             Properties.Settings.Default.EveryLayer = KeepChanges ? chkEveryLayer.Checked : default;
             Properties.Settings.Default.Scale = KeepChanges ? (int) nudScale.Value : default;
+            Properties.Settings.Default.ExportJson = KeepChanges ? chkExportJson.Checked : default;
 
             Properties.Settings.Default.Save();
             if ( KeepChanges )
@@ -125,6 +128,7 @@ namespace Aseprite_Multiple_Export
             AllLayers = chkAllLayers.Checked;
             EveryLayer = chkEveryLayer.Checked;
             Scale = (int) nudScale.Value;
+            ExportJson = chkExportJson.Checked;
 
             Main_Save();
         }
@@ -138,25 +142,28 @@ namespace Aseprite_Multiple_Export
                 return;
             }
 
-            List<string> command = new List<string>() { "Aseprite", "-b" };
-
             if ( _selectedLayer == string.Empty )
             {
-                if ( AllLayers )
-                    command.Add("--all-layers");
-
                 foreach ( var file in _files )
                 {
+                    List<string> command = new List<string>() { "Aseprite", "-b" };
+
+                    if ( AllLayers )
+                        command.Add("--all-layers");
+
                     string filename = file.ToString();
                     if ( filename == default )
                         continue;
 
-                    command.Add(filename);
+                    command.Add($"\"{filename}\"");
                     command.Add($"--scale {Scale}");
                     command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
 
                     string outputName = UpdateOutputName(filename);
-                    command.Add(outputName);
+                    command.Add($"\"{outputName}\"");
+
+                    if ( ExportType == ExportType.SpriteSheet && ExportJson)
+                        command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
 
                     lstDebug.Items.Add($"Exporting {filename} to {outputName}...");
                     ProcessCommand(string.Join(" ", command));
@@ -165,14 +172,21 @@ namespace Aseprite_Multiple_Export
             }
             else
             {
-                var exportedPath = Path.Combine($"{Scale}x", $"{_selectedLayer}_{{frame}}.png");
+                List<string> command = new List<string>() { "Aseprite", "-b" };
+                var exportedPath = Path.Combine($"{Scale}x", $"{_selectedLayer}.png");
+                if( ExportType == ExportType.EveryFrame)
+                    exportedPath = exportedPath.Replace(".png", "_{frame}.png");
                 lstDebug.Items.Add($"Exporting layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath}...");
 
-                command.Add($"--layer {_selectedLayer.Replace("\\", "/")}");
-                command.Add(_selectedLayerFile);
+                command.Add($"--layer \"{_selectedLayer.Replace("\\", "/")}\"");
+                command.Add($"\"{_selectedLayerFile}\"");
                 command.Add($"--scale {Scale}");
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-                command.Add(exportedPath);
+                command.Add($"\"{ exportedPath }\"");
+
+                if ( ExportType == ExportType.SpriteSheet && ExportJson )
+                    command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
+
                 ProcessCommand(string.Join(" ", command));
                 lstDebug.Items.Add($"Exported layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath} successfully.");
             }
@@ -194,10 +208,6 @@ namespace Aseprite_Multiple_Export
                 else
                     filename = filename.Replace(ext, "_{frame}.png");
             }
-            else
-            {
-                filename = filename.Replace(ext, ".png");
-            }
 
             filename = Path.Combine($"{Scale}x", filename);
             return filename;
@@ -213,6 +223,7 @@ namespace Aseprite_Multiple_Export
             FolderBrowserDialog openFolder = new FolderBrowserDialog();
             if ( openFolder.ShowDialog() == DialogResult.OK )
             {
+                lstFilelist.Items.Clear();
                 txtSearchFolder.Text = openFolder.SelectedPath;
                 UpdateForm();
             }

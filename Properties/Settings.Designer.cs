@@ -94,5 +94,17 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["Scale"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ExportJson {
+            get {
+                return ((bool)(this["ExportJson"]));
+            }
+            set {
+                this["ExportJson"] = value;
+            }
+        }
     }
 }

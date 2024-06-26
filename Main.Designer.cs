@@ -52,10 +52,13 @@
             lstDebug = new ListBox();
             lblDebug = new Label();
             btnResetOutput = new Button();
+            grpSpritesheetOptions = new GroupBox();
+            chkExportJson = new CheckBox();
             ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
+            grpSpritesheetOptions.SuspendLayout();
             SuspendLayout();
             // 
             // txtSearchFolder
@@ -281,11 +284,33 @@
             btnResetOutput.UseVisualStyleBackColor = true;
             btnResetOutput.Click += btnResetOutput_Click;
             // 
+            // grpSpritesheetOptions
+            // 
+            grpSpritesheetOptions.Controls.Add(chkExportJson);
+            grpSpritesheetOptions.Location = new Point(405, 277);
+            grpSpritesheetOptions.Name = "grpSpritesheetOptions";
+            grpSpritesheetOptions.Size = new Size(217, 112);
+            grpSpritesheetOptions.TabIndex = 8;
+            grpSpritesheetOptions.TabStop = false;
+            grpSpritesheetOptions.Text = "Spritesheet Options";
+            // 
+            // chkExportJson
+            // 
+            chkExportJson.AutoSize = true;
+            chkExportJson.Location = new Point(6, 22);
+            chkExportJson.Name = "chkExportJson";
+            chkExportJson.Size = new Size(86, 19);
+            chkExportJson.TabIndex = 0;
+            chkExportJson.Text = "Export Json";
+            chkExportJson.UseVisualStyleBackColor = true;
+            chkExportJson.CheckedChanged += basicControl_Changed;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(784, 561);
+            Controls.Add(grpSpritesheetOptions);
             Controls.Add(btnResetOutput);
             Controls.Add(lblDebug);
             Controls.Add(lstDebug);
@@ -315,6 +340,8 @@
             grpExportOptions.ResumeLayout(false);
             grpExportOptions.PerformLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).EndInit();
+            grpSpritesheetOptions.ResumeLayout(false);
+            grpSpritesheetOptions.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -344,5 +371,7 @@
         private ListBox lstDebug;
         private Label lblDebug;
         private Button btnResetOutput;
+        private GroupBox grpSpritesheetOptions;
+        private CheckBox chkExportJson;
     }
 }
