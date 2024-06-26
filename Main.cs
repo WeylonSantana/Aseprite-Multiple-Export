@@ -160,90 +160,102 @@ namespace Aseprite_Multiple_Export
                 return;
             }
 
+            // export files if we have no layers or we want to export specific layers
             if ( _layers.Count == 0 || (_layers.Count > 0 && !EveryLayer) )
             {
-                foreach ( var file in _files )
-                {
-                    List<string> command = new List<string>() { "Aseprite", "-b" };
-
-                    string filename = file.ToString();
-                    if ( filename == default )
-                        continue;
-
-                    if ( AllLayers && _layers.Count == 0 )
-                    {
-                        command.Add("--all-layers");
-                    }
-                    else if ( _layers.Count > 0 && !EveryLayer )
-                    {
-                        foreach (var layer in _layers)
-                        {
-                            command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
-                        }
-                    }
-
-                    command.Add($"\"{filename}\"");
-                    command.Add($"--scale {Scale}");
-                    command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-
-                    string outputName = UpdateOutputName(filename);
-                    command.Add($"\"{outputName}\"");
-
-                    if ( ExportType  == ExportType.SpriteSheet)
-                    {
-                        command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType).ToLowerInvariant()}");
-                        if (SheetExportType == SheetExportType.Rows)
-                            command.Add($"--sheet-columns {SheetSplitCount}");
-
-                        if (SheetExportType == SheetExportType.Columns)
-                            command.Add($"--sheet-rows {SheetSplitCount}");
-
-                        if (ExportJson)
-                            command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
-                    }
-
-                    ProcessCommand(string.Join(" ", command));
-                    lstDebug.Items.Insert(0, $"Exported {filename} to {outputName} successfully.");
-                }
+                ExportFiles();
             }
             else
             {
-                foreach ( var layer in _layers )
-                {
-                    List<string> command = new List<string>() { "Aseprite", "-b" };
-                    var exportedPath = Path.Combine($"{Scale}x", $"{layer}.png");
-                    if ( ExportType == ExportType.EveryFrame )
-                        exportedPath = exportedPath.Replace(".png", "_{frame}.png");
-
-                    command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
-                    command.Add($"\"{_selectedLayerFile}\"");
-                    command.Add($"--scale {Scale}");
-                    command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-                    command.Add($"\"{exportedPath}\"");
-
-                    if ( ExportType == ExportType.SpriteSheet )
-                    {
-                        command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType).ToLowerInvariant()}");
-                        if ( SheetExportType == SheetExportType.Rows )
-                            command.Add($"--sheet-columns {SheetSplitCount}");
-
-                        if ( SheetExportType == SheetExportType.Columns )
-                            command.Add($"--sheet-rows {SheetSplitCount}");
-
-                        if ( ExportJson )
-                            command.Add($"--list-layers --list-tags --data \"{exportedPath.Replace(".png", ".json")}\" --format json-array");
-                    }
-
-                    lstDebug.Items.Insert(0, $"Exported layer {layer} from {_selectedLayerFile} to {exportedPath} successfully.");
-                    ProcessCommand(string.Join(" ", command));
-                }
+                ExportLayers();
             }
 
             lstDebug.Items.Insert(0, $"Export completed successfully for type {ExportType}.");
             MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private string UpdateOutputName(string filename)
+        private void ExportFiles()
+        {
+            foreach ( var file in _files )
+            {
+                if ( file == default )
+                    continue;
+
+                string command = BuildCommand(file);
+                ProcessCommand(string.Join(" ", command));
+
+                lstDebug.Items.Insert(0, $"Exported {file} to {UpdateOutputName(file)} successfully.");
+            }
+        }
+
+        private void ExportLayers()
+        {
+            foreach ( var layer in _layers )
+            {
+                var exportedPath = Path.Combine($"{Scale}x", $"{layer}.png");
+                if ( ExportType == ExportType.EveryFrame )
+                    exportedPath = exportedPath.Replace(".png", "_{frame}.png");
+
+                string command = BuildCommand(_selectedLayerFile, layer);
+                ProcessCommand(string.Join(" ", command));
+
+                lstDebug.Items.Insert(0, $"Exported layer {layer} from {_selectedLayerFile} to {exportedPath} successfully.");
+            }
+        }
+
+        private string BuildCommand(string file, string layer = "")
+        {
+            var command = new List<string> { "Aseprite", "-b" };
+
+            if ( _layers.Count == 0 && AllLayers )
+            {
+                command.Add("--all-layers");
+            }
+
+            if ( !string.IsNullOrEmpty(layer) && _layers.Count == 0 )
+            {
+                command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
+            }
+            else if ( _layers.Count > 0 )
+            {
+                if (!string.IsNullOrEmpty(layer) && EveryLayer)
+                {
+                    command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
+                }
+                else if( !EveryLayer )
+                {
+                    foreach ( var l in _layers )
+                    {
+                        command.Add($"--layer \"{l.Replace("\\", "/")}\"");
+                    }
+                }
+            }
+
+            command.Add($"\"{file}\"");
+            command.Add($"--scale {Scale}");
+            command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
+
+            string outputName = UpdateOutputName(file, layer);
+            command.Add($"\"{outputName}\"");
+
+            if ( ExportType == ExportType.SpriteSheet )
+            {
+                command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType).ToLowerInvariant()}");
+
+                if ( SheetExportType == SheetExportType.Rows )
+                    command.Add($"--sheet-columns {SheetSplitCount}");
+
+                if ( SheetExportType == SheetExportType.Columns )
+                    command.Add($"--sheet-rows {SheetSplitCount}");
+
+                if ( ExportJson )
+                    command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
+            }
+
+            return string.Join(" ", command);
+        }
+
+        private string UpdateOutputName(string filename, string layer = "")
         {
             string ext = Path.GetExtension(filename);
             filename = filename.Replace(ext, ".png");
@@ -251,10 +263,20 @@ namespace Aseprite_Multiple_Export
 
             if ( ExportType == ExportType.EveryFrame )
             {
-                if ( EveryLayer )
+                if ( EveryLayer && string.IsNullOrEmpty(layer) )
                     filename = filename.Replace(filename, "{layer}_{frame}.png");
-                else
+                else if( string.IsNullOrEmpty(layer) )
                     filename = filename.Replace(ext, "_{frame}.png");
+                else
+                    filename = $"{layer}_{{frame}}.png";
+            }
+            else
+            {
+                if ( !string.IsNullOrEmpty(layer) )
+                {
+                    filename = Path.Combine(Path.GetFileNameWithoutExtension(filename), layer);
+                    filename += ext;
+                }
             }
 
             filename = Path.Combine($"{Scale}x", filename);
