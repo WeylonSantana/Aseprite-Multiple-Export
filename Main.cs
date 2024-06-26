@@ -280,6 +280,7 @@ namespace Aseprite_Multiple_Export
             if ( lstLayerList.SelectedItem == default )
             {
                 _selectedLayer = string.Empty;
+                chkEveryLayer.Enabled = true;
                 return;
             }
 
@@ -295,6 +296,8 @@ namespace Aseprite_Multiple_Export
             lstFilelist.Enabled = false;
 
             _selectedLayer = lstLayerList.SelectedItem.ToString();
+            chkEveryLayer.Checked = false;
+            chkEveryLayer.Enabled = false;
         }
 
         private void btnResetOutput_Click(object sender, EventArgs e)
