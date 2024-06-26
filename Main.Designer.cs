@@ -49,6 +49,9 @@
             nudScale = new NumericUpDown();
             lblFileList = new Label();
             lblLayerList = new Label();
+            lstDebug = new ListBox();
+            lblDebug = new Label();
+            btnResetOutput = new Button();
             ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
@@ -250,11 +253,42 @@
             lblLayerList.TabIndex = 12;
             lblLayerList.Text = "Layer List:";
             // 
+            // lstDebug
+            // 
+            lstDebug.FormattingEnabled = true;
+            lstDebug.ItemHeight = 15;
+            lstDebug.Location = new Point(12, 413);
+            lstDebug.Name = "lstDebug";
+            lstDebug.Size = new Size(575, 139);
+            lstDebug.TabIndex = 13;
+            // 
+            // lblDebug
+            // 
+            lblDebug.AutoSize = true;
+            lblDebug.Location = new Point(14, 393);
+            lblDebug.Name = "lblDebug";
+            lblDebug.Size = new Size(48, 15);
+            lblDebug.TabIndex = 14;
+            lblDebug.Text = "Output:";
+            // 
+            // btnResetOutput
+            // 
+            btnResetOutput.Location = new Point(593, 413);
+            btnResetOutput.Name = "btnResetOutput";
+            btnResetOutput.Size = new Size(107, 25);
+            btnResetOutput.TabIndex = 15;
+            btnResetOutput.Text = "Reset Output";
+            btnResetOutput.UseVisualStyleBackColor = true;
+            btnResetOutput.Click += btnResetOutput_Click;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(784, 561);
+            Controls.Add(btnResetOutput);
+            Controls.Add(lblDebug);
+            Controls.Add(lstDebug);
             Controls.Add(lblLayerList);
             Controls.Add(lblFileList);
             Controls.Add(lstLayerList);
@@ -307,5 +341,8 @@
         private Label lblLayerList;
         private ContextMenuStrip ctxMenuFileList;
         private ToolStripMenuItem seeLayersMenuItem;
+        private ListBox lstDebug;
+        private Label lblDebug;
+        private Button btnResetOutput;
     }
 }

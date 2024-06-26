@@ -22,6 +22,7 @@ namespace Aseprite_Multiple_Export
         public Main()
         {
             InitializeComponent();
+            lstDebug.Items.Add("Starting Aseprite Multiple Exporter...");
             string output = ProcessCommand("--version");
             if ( output.Length == 0 )
             {
@@ -38,6 +39,7 @@ namespace Aseprite_Multiple_Export
                 MessageBox.Show(error, "Error - Aseprite not Found!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
             }
+            lstDebug.Items.Add(output);
         }
 
         private string ProcessCommand(string command)
@@ -55,6 +57,7 @@ namespace Aseprite_Multiple_Export
 
         private void Main_Load(object sender, EventArgs e)
         {
+            lstDebug.Items.Add("Loading settings...");
             _isLoading = true;
             chkKeepChanges.Checked = Properties.Settings.Default.KeepChanges;
             txtSearchFolder.Text = Properties.Settings.Default.FolderPath;
@@ -66,12 +69,14 @@ namespace Aseprite_Multiple_Export
 
             UpdateForm();
             _isLoading = false;
+            lstDebug.Items.Add("Settings loaded successfully.");
         }
 
         private void Main_Save()
         {
             if ( _isLoading )
                 return;
+
             Properties.Settings.Default.KeepChanges = KeepChanges;
             Properties.Settings.Default.FolderPath = KeepChanges ? FolderPath : string.Empty;
             Properties.Settings.Default.ExportType = KeepChanges ? (int) ExportType : default;
@@ -80,6 +85,8 @@ namespace Aseprite_Multiple_Export
             Properties.Settings.Default.Scale = KeepChanges ? (int) nudScale.Value : default;
 
             Properties.Settings.Default.Save();
+            if ( KeepChanges )
+                lstDebug.Items.Add("Settings saved successfully.");
         }
 
         private void UpdateForm()
@@ -124,6 +131,7 @@ namespace Aseprite_Multiple_Export
 
         private void btnExport_Click(object sender, EventArgs e)
         {
+            lstDebug.Items.Add("Exporting files...");
             if ( _files.Count == 0 )
             {
                 MessageBox.Show("Please select at least one file to export.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -150,19 +158,26 @@ namespace Aseprite_Multiple_Export
                     string outputName = UpdateOutputName(filename);
                     command.Add(outputName);
 
+                    lstDebug.Items.Add($"Exporting {filename} to {outputName}...");
                     ProcessCommand(string.Join(" ", command));
+                    lstDebug.Items.Add($"Exported {filename} to {outputName} successfully.");
                 }
             }
             else
             {
+                var exportedPath = Path.Combine($"{Scale}x", $"{_selectedLayer}_{{frame}}.png");
+                lstDebug.Items.Add($"Exporting layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath}...");
+
                 command.Add($"--layer {_selectedLayer.Replace("\\", "/")}");
                 command.Add(_selectedLayerFile);
                 command.Add($"--scale {Scale}");
                 command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-                command.Add(Path.Combine($"{Scale}x", $"{_selectedLayer}_{{frame}}.png"));
+                command.Add(exportedPath);
                 ProcessCommand(string.Join(" ", command));
+                lstDebug.Items.Add($"Exported layer {_selectedLayer} from {_selectedLayerFile} to {exportedPath} successfully.");
             }
 
+            lstDebug.Items.Add($"Export completed successfully for type {ExportType}.");
             MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -222,7 +237,7 @@ namespace Aseprite_Multiple_Export
         private void lstFilelist_SelectedIndexChanged(object sender, EventArgs e)
         {
             _files.Clear();
-            foreach ( var item in lstFilelist.SelectedItems)
+            foreach ( var item in lstFilelist.SelectedItems )
             {
                 _files.Add(item.ToString());
             }
@@ -234,29 +249,35 @@ namespace Aseprite_Multiple_Export
                 return;
 
             //lets create only the json file for we see the layers
+            lstDebug.Items.Add($"Getting layers of {_lastSelectedItem}...");
             string outputName = _lastSelectedItem.Replace(Path.GetExtension(_lastSelectedItem), ".json");
             string finalCommand = $"-b --list-layers";
             if ( AllLayers )
                 finalCommand += " --all-layers ";
             finalCommand += $" {_lastSelectedItem} --data {outputName} --format json-array";
+            lstDebug.Items.Add("Generating json file...");
             ProcessCommand(finalCommand);
 
+            lstDebug.Items.Add("Json file generated successfully.");
             var fileData = File.ReadAllText(Path.Combine(FolderPath, outputName));
             AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>();
             // remove file
             File.Delete(Path.Combine(FolderPath, outputName));
+            lstDebug.Items.Add("Json file deleted successfully.");
 
             List<AsepriteLayer> layers = json.meta.layers;
             List<LayerNode> nodes = Utilities.BuildLayerTree(layers);
             List<string> lines = Utilities.FormatLayerTree(nodes);
+            lstDebug.Items.Add("Layers obtained successfully.");
             lstLayerList.Items.Clear();
             lstLayerList.Items.AddRange(lines.ToArray());
             _selectedLayerFile = _lastSelectedItem;
+            lstDebug.Items.Add("Layers loaded successfully.");
         }
 
         private void lstLayerList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if( lstLayerList.SelectedItem == default) 
+            if ( lstLayerList.SelectedItem == default )
                 return;
 
             if ( lstLayerList.SelectedItem == _selectedLayer )
@@ -271,6 +292,11 @@ namespace Aseprite_Multiple_Export
             lstFilelist.Enabled = false;
 
             _selectedLayer = lstLayerList.SelectedItem.ToString();
+        }
+
+        private void btnResetOutput_Click(object sender, EventArgs e)
+        {
+            lstDebug.Items.Clear();
         }
     }
 }
