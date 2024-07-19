@@ -19,8 +19,6 @@ public partial class Main : Form
     private int StartFrame;
     private int EndFrame;
 
-    private Process? process;
-
     private readonly List<string> _files = [];
     private readonly List<string> _layers = [];
     private bool _isLoading = false;
@@ -53,7 +51,7 @@ public partial class Main : Form
 
     private string ProcessCommand(string command)
     {
-        process = new Process();
+        Process process = new();
         process.StartInfo.FileName = "cmd.exe";
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = FolderPath;
