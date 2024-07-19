@@ -1,60 +1,61 @@
-﻿namespace Aseprite_Multiple_Export
+﻿namespace Aseprite_Multiple_Export;
+
+public static class Utilities
 {
-    public static class Utilities
+    public static List<LayerNode> BuildLayerTree(List<AsepriteLayer> layers)
     {
-        public static List<LayerNode> BuildLayerTree(List<AsepriteLayer> layers)
+        Dictionary<Guid, LayerNode> layerMap = [];
+        List<LayerNode> rootNodes = [];
+
+        foreach (AsepriteLayer layer in layers)
         {
-            var layerMap = new Dictionary<Guid, LayerNode>();
-            var rootNodes = new List<LayerNode>();
+            LayerNode node = new() { Name = layer.name, FullPath = layer.name, Children = [] };
+            layerMap.Add(node.Id, node);
 
-            foreach ( var layer in layers )
+            if (layer.group != default)
             {
-                var node = new LayerNode() { Name = layer.name, FullPath = layer.name, Children = new List<LayerNode>() };
-                layerMap.Add(node.Id, node);
-
-                if ( layer.group != default )
-                {
-                    var parent = layerMap.Values.FirstOrDefault(x => x.Name == layer.group);
-                    if (parent != default) parent.Children.Add(node);
-                    else rootNodes.Add(node);
-                }
+                LayerNode? parent = layerMap.Values.FirstOrDefault(x => x.Name == layer.group);
+                if (parent != default)
+                    parent.Children.Add(node);
                 else
-                {
                     rootNodes.Add(node);
-                }
-            }
-
-            return rootNodes;
-        }
-
-        public static List<string> FormatLayerTree(List<LayerNode> nodes)
-        {
-            var lines = new List<string>();
-
-            foreach ( var node in nodes )
-            {
-                TransverseLayerTree(ref lines, node, string.Empty);
-            }
-
-            return lines;
-        }
-
-        private static void TransverseLayerTree(ref List<string> lines, LayerNode node, string parentPath)
-        {
-            var currentPath = parentPath.Length > 0 ? Path.Combine(parentPath, node.Name) : node.Name;
-
-            if (node.Children.Count == 0 )
-            {
-                lines.Add(currentPath);
             }
             else
             {
-                lines.Add(currentPath);
+                rootNodes.Add(node);
+            }
+        }
 
-                foreach ( var child in node.Children )
-                {
-                    TransverseLayerTree(ref lines, child, currentPath);
-                }
+        return rootNodes;
+    }
+
+    public static List<string> FormatLayerTree(List<LayerNode> nodes)
+    {
+        List<string> lines = [];
+
+        foreach (LayerNode node in nodes)
+        {
+            TransverseLayerTree(ref lines, node, string.Empty);
+        }
+
+        return lines;
+    }
+
+    private static void TransverseLayerTree(ref List<string> lines, LayerNode node, string parentPath)
+    {
+        string currentPath = parentPath.Length > 0 ? Path.Combine(parentPath, node.Name) : node.Name;
+
+        if (node.Children.Count == 0)
+        {
+            lines.Add(currentPath);
+        }
+        else
+        {
+            lines.Add(currentPath);
+
+            foreach (LayerNode child in node.Children)
+            {
+                TransverseLayerTree(ref lines, child, currentPath);
             }
         }
     }

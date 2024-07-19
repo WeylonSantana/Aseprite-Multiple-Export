@@ -58,12 +58,25 @@
             lblExportType = new Label();
             cmbSheetExportType = new ComboBox();
             chkExportJson = new CheckBox();
+            lblOutputName = new Label();
+            txtOutputName = new TextBox();
+            nudFrameRangeMax = new NumericUpDown();
+            grpFrameRangeOptions = new GroupBox();
+            chkFrameRange = new CheckBox();
+            lblFrameRangeMin = new Label();
+            nudFrameRangeMin = new NumericUpDown();
+            lblFrameRangeMax = new Label();
+            btnResetFileListSelection = new Button();
+            btnResetLayerListSelection = new Button();
             ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
             grpSpritesheetOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudSplit).BeginInit();
+            ((System.ComponentModel.ISupportInitialize) nudFrameRangeMax).BeginInit();
+            grpFrameRangeOptions.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) nudFrameRangeMin).BeginInit();
             SuspendLayout();
             // 
             // txtSearchFolder
@@ -91,20 +104,20 @@
             btnSearchFolder.TabIndex = 2;
             btnSearchFolder.Text = "Search";
             btnSearchFolder.UseVisualStyleBackColor = true;
-            btnSearchFolder.Click += btnSearchFolder_Click;
+            btnSearchFolder.Click += BtnSearchFolder_Click;
             // 
             // lstFilelist
             // 
             lstFilelist.ContextMenuStrip = ctxMenuFileList;
             lstFilelist.FormattingEnabled = true;
             lstFilelist.ItemHeight = 15;
-            lstFilelist.Location = new Point(12, 57);
+            lstFilelist.Location = new Point(12, 72);
             lstFilelist.Name = "lstFilelist";
             lstFilelist.SelectionMode = SelectionMode.MultiSimple;
-            lstFilelist.Size = new Size(449, 214);
+            lstFilelist.Size = new Size(449, 199);
             lstFilelist.TabIndex = 3;
-            lstFilelist.SelectedIndexChanged += lstFilelist_SelectedIndexChanged;
-            lstFilelist.MouseDown += lstFilelist_MouseDown;
+            lstFilelist.SelectedIndexChanged += LstFilelist_SelectedIndexChanged;
+            lstFilelist.MouseDown += LstFilelist_MouseDown;
             // 
             // ctxMenuFileList
             // 
@@ -117,7 +130,7 @@
             seeLayersMenuItem.Name = "seeLayersMenuItem";
             seeLayersMenuItem.Size = new Size(200, 22);
             seeLayersMenuItem.Text = "Select a file to see layers";
-            seeLayersMenuItem.Click += seeLayersMenuItem_Click;
+            seeLayersMenuItem.Click += SeeLayersMenuItem_Click;
             // 
             // chkKeepChanges
             // 
@@ -129,7 +142,7 @@
             chkKeepChanges.Text = "Keep Changes?";
             toolTip.SetToolTip(chkKeepChanges, "Persist changes.");
             chkKeepChanges.UseVisualStyleBackColor = true;
-            chkKeepChanges.CheckedChanged += basicControl_Changed;
+            chkKeepChanges.CheckedChanged += BasicControl_Changed;
             // 
             // grpExportTypes
             // 
@@ -137,7 +150,7 @@
             grpExportTypes.Controls.Add(rdoEveryFrame);
             grpExportTypes.Location = new Point(12, 277);
             grpExportTypes.Name = "grpExportTypes";
-            grpExportTypes.Size = new Size(387, 56);
+            grpExportTypes.Size = new Size(449, 56);
             grpExportTypes.TabIndex = 5;
             grpExportTypes.TabStop = false;
             grpExportTypes.Text = "Export Types";
@@ -153,7 +166,7 @@
             rdoSpriteSheet.Text = "Sprite Sheet";
             toolTip.SetToolTip(rdoSpriteSheet, "Export the file as a spritesheet.");
             rdoSpriteSheet.UseVisualStyleBackColor = true;
-            rdoSpriteSheet.CheckedChanged += basicControl_Changed;
+            rdoSpriteSheet.CheckedChanged += BasicControl_Changed;
             // 
             // rdoEveryFrame
             // 
@@ -166,17 +179,17 @@
             rdoEveryFrame.Text = "Every Frame";
             toolTip.SetToolTip(rdoEveryFrame, "Export every frame of the selected files.");
             rdoEveryFrame.UseVisualStyleBackColor = true;
-            rdoEveryFrame.CheckedChanged += basicControl_Changed;
+            rdoEveryFrame.CheckedChanged += BasicControl_Changed;
             // 
             // btnExport
             // 
-            btnExport.Location = new Point(697, 524);
+            btnExport.Location = new Point(593, 560);
             btnExport.Name = "btnExport";
-            btnExport.Size = new Size(75, 25);
+            btnExport.Size = new Size(179, 25);
             btnExport.TabIndex = 6;
             btnExport.Text = "Export!";
             btnExport.UseVisualStyleBackColor = true;
-            btnExport.Click += btnExport_Click;
+            btnExport.Click += BtnExport_Click;
             // 
             // grpExportOptions
             // 
@@ -184,7 +197,7 @@
             grpExportOptions.Controls.Add(chkAllLayers);
             grpExportOptions.Location = new Point(12, 339);
             grpExportOptions.Name = "grpExportOptions";
-            grpExportOptions.Size = new Size(387, 50);
+            grpExportOptions.Size = new Size(449, 50);
             grpExportOptions.TabIndex = 7;
             grpExportOptions.TabStop = false;
             grpExportOptions.Text = "Export Options";
@@ -199,7 +212,7 @@
             chkEveryLayer.Text = "Every Layer";
             toolTip.SetToolTip(chkEveryLayer, "Export each frame of each layer into a different file.");
             chkEveryLayer.UseVisualStyleBackColor = true;
-            chkEveryLayer.CheckedChanged += basicControl_Changed;
+            chkEveryLayer.CheckedChanged += BasicControl_Changed;
             // 
             // chkAllLayers
             // 
@@ -211,24 +224,24 @@
             chkAllLayers.Text = "All Layers";
             toolTip.SetToolTip(chkAllLayers, "Force all layers to be visible.");
             chkAllLayers.UseVisualStyleBackColor = true;
-            chkAllLayers.CheckedChanged += basicControl_Changed;
+            chkAllLayers.CheckedChanged += BasicControl_Changed;
             // 
             // lstLayerList
             // 
             lstLayerList.FormattingEnabled = true;
             lstLayerList.ItemHeight = 15;
-            lstLayerList.Location = new Point(483, 57);
+            lstLayerList.Location = new Point(483, 72);
             lstLayerList.Name = "lstLayerList";
             lstLayerList.SelectionMode = SelectionMode.MultiSimple;
-            lstLayerList.Size = new Size(217, 214);
+            lstLayerList.Size = new Size(289, 199);
             lstLayerList.TabIndex = 10;
             toolTip.SetToolTip(lstLayerList, "List of visible layers, if you see nothing then check \"All Layers\" and try again.");
-            lstLayerList.SelectedIndexChanged += lstLayerList_SelectedIndexChanged;
+            lstLayerList.SelectedIndexChanged += LstLayerList_SelectedIndexChanged;
             // 
             // lblScale
             // 
             lblScale.AutoSize = true;
-            lblScale.Location = new Point(593, 527);
+            lblScale.Location = new Point(593, 530);
             lblScale.Name = "lblScale";
             lblScale.Size = new Size(37, 15);
             lblScale.TabIndex = 8;
@@ -236,18 +249,18 @@
             // 
             // nudScale
             // 
-            nudScale.Location = new Point(636, 525);
+            nudScale.Location = new Point(636, 528);
             nudScale.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             nudScale.Name = "nudScale";
-            nudScale.Size = new Size(55, 23);
+            nudScale.Size = new Size(136, 23);
             nudScale.TabIndex = 9;
             nudScale.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            nudScale.ValueChanged += basicControl_Changed;
+            nudScale.ValueChanged += BasicControl_Changed;
             // 
             // lblFileList
             // 
             lblFileList.AutoSize = true;
-            lblFileList.Location = new Point(12, 36);
+            lblFileList.Location = new Point(12, 54);
             lblFileList.Name = "lblFileList";
             lblFileList.Size = new Size(49, 15);
             lblFileList.TabIndex = 11;
@@ -256,7 +269,7 @@
             // lblLayerList
             // 
             lblLayerList.AutoSize = true;
-            lblLayerList.Location = new Point(483, 36);
+            lblLayerList.Location = new Point(483, 54);
             lblLayerList.Name = "lblLayerList";
             lblLayerList.Size = new Size(59, 15);
             lblLayerList.TabIndex = 12;
@@ -282,13 +295,13 @@
             // 
             // btnResetOutput
             // 
-            btnResetOutput.Location = new Point(593, 413);
+            btnResetOutput.Location = new Point(12, 558);
             btnResetOutput.Name = "btnResetOutput";
             btnResetOutput.Size = new Size(107, 25);
             btnResetOutput.TabIndex = 15;
             btnResetOutput.Text = "Reset Output";
             btnResetOutput.UseVisualStyleBackColor = true;
-            btnResetOutput.Click += btnResetOutput_Click;
+            btnResetOutput.Click += BtnResetOutput_Click;
             // 
             // grpSpritesheetOptions
             // 
@@ -297,9 +310,9 @@
             grpSpritesheetOptions.Controls.Add(lblExportType);
             grpSpritesheetOptions.Controls.Add(cmbSheetExportType);
             grpSpritesheetOptions.Controls.Add(chkExportJson);
-            grpSpritesheetOptions.Location = new Point(405, 277);
+            grpSpritesheetOptions.Location = new Point(483, 277);
             grpSpritesheetOptions.Name = "grpSpritesheetOptions";
-            grpSpritesheetOptions.Size = new Size(295, 112);
+            grpSpritesheetOptions.Size = new Size(289, 112);
             grpSpritesheetOptions.TabIndex = 8;
             grpSpritesheetOptions.TabStop = false;
             grpSpritesheetOptions.Text = "Spritesheet Options";
@@ -319,7 +332,7 @@
             nudSplit.Name = "nudSplit";
             nudSplit.Size = new Size(120, 23);
             nudSplit.TabIndex = 17;
-            nudSplit.ValueChanged += basicControl_Changed;
+            nudSplit.ValueChanged += BasicControl_Changed;
             // 
             // lblExportType
             // 
@@ -337,7 +350,7 @@
             cmbSheetExportType.Name = "cmbSheetExportType";
             cmbSheetExportType.Size = new Size(121, 23);
             cmbSheetExportType.TabIndex = 1;
-            cmbSheetExportType.SelectedIndexChanged += basicControl_Changed;
+            cmbSheetExportType.SelectedIndexChanged += BasicControl_Changed;
             // 
             // chkExportJson
             // 
@@ -348,13 +361,116 @@
             chkExportJson.TabIndex = 0;
             chkExportJson.Text = "Export Json";
             chkExportJson.UseVisualStyleBackColor = true;
-            chkExportJson.CheckedChanged += basicControl_Changed;
+            chkExportJson.CheckedChanged += BasicControl_Changed;
+            // 
+            // lblOutputName
+            // 
+            lblOutputName.AutoSize = true;
+            lblOutputName.Location = new Point(274, 565);
+            lblOutputName.Name = "lblOutputName";
+            lblOutputName.Size = new Size(128, 15);
+            lblOutputName.TabIndex = 16;
+            lblOutputName.Text = "Custom Output Name:";
+            // 
+            // txtOutputName
+            // 
+            txtOutputName.Location = new Point(408, 562);
+            txtOutputName.Name = "txtOutputName";
+            txtOutputName.Size = new Size(179, 23);
+            txtOutputName.TabIndex = 17;
+            txtOutputName.TextChanged += BasicControl_Changed;
+            // 
+            // nudFrameRangeMax
+            // 
+            nudFrameRangeMax.Location = new Point(45, 81);
+            nudFrameRangeMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            nudFrameRangeMax.Name = "nudFrameRangeMax";
+            nudFrameRangeMax.Size = new Size(128, 23);
+            nudFrameRangeMax.TabIndex = 18;
+            nudFrameRangeMax.Value = new decimal(new int[] { 1, 0, 0, 0 });
+            nudFrameRangeMax.ValueChanged += BasicControl_Changed;
+            // 
+            // grpFrameRangeOptions
+            // 
+            grpFrameRangeOptions.Controls.Add(chkFrameRange);
+            grpFrameRangeOptions.Controls.Add(lblFrameRangeMin);
+            grpFrameRangeOptions.Controls.Add(nudFrameRangeMin);
+            grpFrameRangeOptions.Controls.Add(lblFrameRangeMax);
+            grpFrameRangeOptions.Controls.Add(nudFrameRangeMax);
+            grpFrameRangeOptions.Location = new Point(593, 405);
+            grpFrameRangeOptions.Name = "grpFrameRangeOptions";
+            grpFrameRangeOptions.Size = new Size(179, 114);
+            grpFrameRangeOptions.TabIndex = 19;
+            grpFrameRangeOptions.TabStop = false;
+            grpFrameRangeOptions.Text = "Frame Range Options";
+            // 
+            // chkFrameRange
+            // 
+            chkFrameRange.AutoSize = true;
+            chkFrameRange.Location = new Point(9, 22);
+            chkFrameRange.Name = "chkFrameRange";
+            chkFrameRange.Size = new Size(133, 19);
+            chkFrameRange.TabIndex = 19;
+            chkFrameRange.Text = "Enable Frame Range";
+            chkFrameRange.UseVisualStyleBackColor = true;
+            chkFrameRange.CheckedChanged += BasicControl_Changed;
+            // 
+            // lblFrameRangeMin
+            // 
+            lblFrameRangeMin.AutoSize = true;
+            lblFrameRangeMin.Location = new Point(6, 54);
+            lblFrameRangeMin.Name = "lblFrameRangeMin";
+            lblFrameRangeMin.Size = new Size(31, 15);
+            lblFrameRangeMin.TabIndex = 22;
+            lblFrameRangeMin.Text = "Min:";
+            // 
+            // nudFrameRangeMin
+            // 
+            nudFrameRangeMin.Location = new Point(45, 52);
+            nudFrameRangeMin.Name = "nudFrameRangeMin";
+            nudFrameRangeMin.Size = new Size(128, 23);
+            nudFrameRangeMin.TabIndex = 21;
+            nudFrameRangeMin.ValueChanged += BasicControl_Changed;
+            // 
+            // lblFrameRangeMax
+            // 
+            lblFrameRangeMax.AutoSize = true;
+            lblFrameRangeMax.Location = new Point(6, 83);
+            lblFrameRangeMax.Name = "lblFrameRangeMax";
+            lblFrameRangeMax.Size = new Size(33, 15);
+            lblFrameRangeMax.TabIndex = 20;
+            lblFrameRangeMax.Text = "Max:";
+            // 
+            // btnResetFileListSelection
+            // 
+            btnResetFileListSelection.Location = new Point(311, 41);
+            btnResetFileListSelection.Name = "btnResetFileListSelection";
+            btnResetFileListSelection.Size = new Size(150, 25);
+            btnResetFileListSelection.TabIndex = 20;
+            btnResetFileListSelection.Text = "Reset File List Selection";
+            btnResetFileListSelection.UseVisualStyleBackColor = true;
+            btnResetFileListSelection.Click += BtnResetFileListSelection_Click;
+            // 
+            // btnResetLayerListSelection
+            // 
+            btnResetLayerListSelection.Location = new Point(622, 44);
+            btnResetLayerListSelection.Name = "btnResetLayerListSelection";
+            btnResetLayerListSelection.Size = new Size(150, 25);
+            btnResetLayerListSelection.TabIndex = 21;
+            btnResetLayerListSelection.Text = "Reset Layer List Selection";
+            btnResetLayerListSelection.UseVisualStyleBackColor = true;
+            btnResetLayerListSelection.Click += BtnResetLayerListSelection_Click;
             // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(784, 561);
+            ClientSize = new Size(784, 593);
+            Controls.Add(btnResetLayerListSelection);
+            Controls.Add(btnResetFileListSelection);
+            Controls.Add(grpFrameRangeOptions);
+            Controls.Add(txtOutputName);
+            Controls.Add(lblOutputName);
             Controls.Add(grpSpritesheetOptions);
             Controls.Add(btnResetOutput);
             Controls.Add(lblDebug);
@@ -388,6 +504,10 @@
             grpSpritesheetOptions.ResumeLayout(false);
             grpSpritesheetOptions.PerformLayout();
             ((System.ComponentModel.ISupportInitialize) nudSplit).EndInit();
+            ((System.ComponentModel.ISupportInitialize) nudFrameRangeMax).EndInit();
+            grpFrameRangeOptions.ResumeLayout(false);
+            grpFrameRangeOptions.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize) nudFrameRangeMin).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -423,5 +543,15 @@
         private NumericUpDown nudSplit;
         private Label lblExportType;
         private ComboBox cmbSheetExportType;
+        private Label lblOutputName;
+        private TextBox txtOutputName;
+        private NumericUpDown nudFrameRangeMax;
+        private GroupBox grpFrameRangeOptions;
+        private Label lblFrameRangeMax;
+        private CheckBox chkFrameRange;
+        private Label lblFrameRangeMin;
+        private NumericUpDown nudFrameRangeMin;
+        private Button btnResetFileListSelection;
+        private Button btnResetLayerListSelection;
     }
 }

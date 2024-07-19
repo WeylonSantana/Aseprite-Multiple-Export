@@ -1,4 +1,7 @@
-﻿public enum ExportType
+﻿#pragma warning disable IDE1006 // Estilos de Nomenclatura
+#pragma warning disable CA1050 // Declarar tipos em namespaces
+
+public enum ExportType
 {
     EveryFrame,
     SpriteSheet,
@@ -15,90 +18,90 @@ public enum SheetExportType
 
 public class AsepriteJsonFile
 {
-    public List<AsepriteFrame> frames { get; set; }
+    public required List<AsepriteFrame> frames { get; set; }
 
-    public AsepriteMeta meta { get; set; }
+    public required AsepriteMeta meta { get; set; }
 }
 
 public class AsepriteFrame
 {
-    public string filename { get; set; }
+    public required string filename { get; set; }
 
-    public AsepriteBound frame { get; set; }
+    public required AsepriteBound frame { get; set; }
 
-    public bool rotated { get; set; }
+    public required bool rotated { get; set; }
 
-    public bool trimmed { get; set; }
+    public required bool trimmed { get; set; }
 
-    public AsepriteBound spriteSourceSize { get; set; }
+    public required AsepriteBound spriteSourceSize { get; set; }
 
-    public AsepriteSize sourceSize { get; set; }
+    public required AsepriteSize sourceSize { get; set; }
 
-    public int duration { get; set; }
+    public required int duration { get; set; }
 }
 
 public class AsepriteBound
 {
-    public int x { get; set; }
+    public required int x { get; set; }
 
-    public int y { get; set; }
+    public required int y { get; set; }
 
-    public int w { get; set; }
+    public required int w { get; set; }
 
-    public int h { get; set; }
+    public required int h { get; set; }
 }
 
 public class AsepriteSize
 {
-    public int w { get; set; }
+    public required int w { get; set; }
 
-    public int h { get; set; }
+    public required int h { get; set; }
 }
 
 public class AsepriteMeta
 {
-    public string app { get; set; }
+    public required string app { get; set; }
 
-    public string version { get; set; }
+    public required string version { get; set; }
 
-    public string image { get; set; }
+    public required string image { get; set; }
 
-    public string format { get; set; }
+    public required string format { get; set; }
 
-    public AsepriteSize size { get; set; }
+    public required AsepriteSize size { get; set; }
 
-    public string scale { get; set; }
+    public required string scale { get; set; }
 
-    public List<AsepriteFrameTag> frameTags { get; set; }
+    public required List<AsepriteFrameTag> frameTags { get; set; }
 
-    public List<AsepriteLayer> layers { get; set; }
+    public required List<AsepriteLayer> layers { get; set; }
 }
 
 public class AsepriteFrameTag
 {
-    public string name { get; set; }
+    public required string name { get; set; }
 
-    public int from { get; set; }
+    public required int from { get; set; }
 
-    public int to { get; set; }
+    public required int to { get; set; }
 
-    public string direction { get; set; }
+    public required string direction { get; set; }
 }
 
 public class AsepriteLayer
 {
-    public string name { get; set; }
+    public required string name { get; set; }
 
-    public string? group { get; set; }
+    public required string? group { get; set; }
 }
 
 public class LayerNode
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
-    public string FullPath { get; set; }
+    public required string FullPath { get; set; }
 
-    public List<LayerNode> Children { get; set; }
+    public required List<LayerNode> Children { get; set; }
 }

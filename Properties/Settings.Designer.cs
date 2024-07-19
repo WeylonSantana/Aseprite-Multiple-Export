@@ -130,5 +130,53 @@ namespace Aseprite_Multiple_Export.Properties {
                 this["SheetSplitCount"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CustomOutputName {
+            get {
+                return ((string)(this["CustomOutputName"]));
+            }
+            set {
+                this["CustomOutputName"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool EnableFrameRange {
+            get {
+                return ((bool)(this["EnableFrameRange"]));
+            }
+            set {
+                this["EnableFrameRange"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int StartFrame {
+            get {
+                return ((int)(this["StartFrame"]));
+            }
+            set {
+                this["StartFrame"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int EndFrame {
+            get {
+                return ((int)(this["EndFrame"]));
+            }
+            set {
+                this["EndFrame"] = value;
+            }
+        }
     }
 }
