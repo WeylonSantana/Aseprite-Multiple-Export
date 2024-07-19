@@ -52,10 +52,10 @@ public partial class Main : Form
     private string ProcessCommand(string command)
     {
         Process process = new();
-        process.StartInfo.FileName = "cmd.exe";
+        process.StartInfo.FileName = "Aseprite.exe";
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = FolderPath;
-        process.StartInfo.Arguments = $"/C \"Aseprite {command}\"";
+        process.StartInfo.Arguments = command;
         process.StartInfo.RedirectStandardOutput = true;
         _ = process.Start();
         string output = process.StandardOutput.ReadToEnd();
