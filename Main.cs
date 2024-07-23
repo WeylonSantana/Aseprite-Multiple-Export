@@ -72,15 +72,13 @@ public partial class Main : Form
         rdoSpriteSheet.Checked = Properties.Settings.Default.ExportType == (int)ExportType.SpriteSheet;
         chkAllLayers.Checked = Properties.Settings.Default.AllLayers;
         chkEveryLayer.Checked = Properties.Settings.Default.EveryLayer;
-        nudScale.Value = Properties.Settings.Default.Scale;
+        nudScale.Value = Math.Max(nudScale.Minimum, Properties.Settings.Default.Scale);
         chkExportJson.Checked = Properties.Settings.Default.ExportJson;
-        nudSplit.Value = Properties.Settings.Default.SheetSplitCount;
+        nudSplit.Value = Math.Max(nudSplit.Minimum, Properties.Settings.Default.SheetSplitCount);
         txtOutputName.Text = Properties.Settings.Default.CustomOutputName;
         chkFrameRange.Checked = Properties.Settings.Default.EnableFrameRange;
-        nudFrameRangeMin.Value = Properties.Settings.Default.StartFrame >= nudFrameRangeMin.Minimum
-            ? Properties.Settings.Default.StartFrame : nudFrameRangeMin.Minimum;
-        nudFrameRangeMax.Value = Properties.Settings.Default.EndFrame >= nudFrameRangeMax.Minimum
-            ? Properties.Settings.Default.EndFrame : nudFrameRangeMax.Minimum;
+        nudFrameRangeMin.Value = Math.Max(nudFrameRangeMin.Minimum, Properties.Settings.Default.StartFrame);
+        nudFrameRangeMax.Value = Math.Max(nudFrameRangeMax.Minimum, Properties.Settings.Default.EndFrame);
 
         cmbSheetExportType.Items.AddRange(Enum.GetNames(typeof(SheetExportType)));
         cmbSheetExportType.SelectedIndex = Properties.Settings.Default.SheetExportType;
