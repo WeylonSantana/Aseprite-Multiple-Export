@@ -180,7 +180,7 @@ public partial class Main : Form
         }
 
         // export files if we have no layers or we want to export specific layers
-        if (_layers.Count == 0 || (_layers.Count > 0 && !EveryLayer))
+        if (_layers.Count == 0 && !EveryLayer)
         {
             ExportFiles();
         }
@@ -209,11 +209,21 @@ public partial class Main : Form
 
     private void ExportLayers()
     {
+        if (_layers.Count == 0 && EveryLayer)
+        {
+            SeeLayersMenuItem_Click(null, null);
+            foreach (string l in lstLayerList.Items)
+            {
+                _layers.Add(l);
+            }
+
+            lstLayerList.Items.Clear();
+        }
+
         foreach (string layer in _layers)
         {
             string exportedPath = Path.Combine($"{Scale}x", $"{layer}.png");
-            if (ExportType == ExportType.EveryFrame)
-                exportedPath = exportedPath.Replace(".png", "_{frame}.png");
+            if (ExportType == ExportType.EveryFrame) exportedPath = exportedPath.Replace(".png", "_{frame}.png");
 
             string command = BuildCommand(_selectedLayerFile, layer);
             _ = ProcessCommand(string.Join(" ", command));
@@ -361,12 +371,11 @@ public partial class Main : Form
         _files.Clear();
         foreach (object? item in lstFilelist.SelectedItems)
         {
-            if (item.ToString() != default)
-                _files.Add(item.ToString()!);
+            if (item.ToString() != default) _files.Add(item.ToString()!);
         }
     }
 
-    private void SeeLayersMenuItem_Click(object sender, EventArgs e)
+    private void SeeLayersMenuItem_Click(object? sender, EventArgs? e)
     {
         if (string.IsNullOrEmpty(_lastSelectedItem))
             return;
@@ -375,9 +384,8 @@ public partial class Main : Form
         lstDebug.Items.Insert(0, $"Getting layers of {_lastSelectedItem}...");
         string outputName = _lastSelectedItem.Replace(Path.GetExtension(_lastSelectedItem), ".json");
         string finalCommand = $"-b --list-layers";
-        if (AllLayers)
-            finalCommand += " --all-layers ";
-        finalCommand += $" {_lastSelectedItem} --data {outputName} --format json-array";
+        if (AllLayers) finalCommand += " --all-layers ";
+        finalCommand += $" \"{_lastSelectedItem}\" --data \"{outputName}\" --format json-array";
         lstDebug.Items.Insert(0, "Generating json file...");
         _ = ProcessCommand(finalCommand);
 
