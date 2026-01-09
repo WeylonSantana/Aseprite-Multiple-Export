@@ -329,10 +329,12 @@ public partial class Main : Form
         {
             int from = Math.Min(StartFrame, EndFrame);
             int to = Math.Max(StartFrame, EndFrame);
-            parameters["fromFrame"] = from.ToString();
-            parameters["toFrame"] = to.ToString();
-            parameters["frameRange"] = $"{from},{to}";
             frameRangeValue = $"{from},{to}";
+            if (ExportType == ExportType.EveryFrame)
+            {
+                parameters["fromFrame"] = from.ToString();
+                parameters["toFrame"] = to.ToString();
+            }
             if (StartFrame > EndFrame)
                 SafeLog("Frame range values were inverted. Using the corrected range.");
         }

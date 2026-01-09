@@ -2,7 +2,7 @@
 -- Usage (PowerShell):
 --   Aseprite.exe -b "file.aseprite" --script-param out='export/{layer}.png' ^
 --     --script-param type=packed --script "scripts/export_sheet_per_layer.lua"
--- Optional params: data, type, columns, rows, scale, from, to, includeHidden, layers
+-- Optional params: data, type, columns, rows, scale, includeHidden, layers
 
 local spr = app.activeSprite or app.sprite
 if not spr then
@@ -16,24 +16,6 @@ local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
 local scale = tonumber(p.scale)
-local function parse_frame_range(value)
-  if not value or value == "" then
-    return nil, nil
-  end
-  local a, b = string.match(value, "^%s*(%d+)%s*,%s*(%d+)%s*$")
-  if a and b then
-    return tonumber(a), tonumber(b)
-  end
-  return nil, nil
-end
-
-local fromFrame = tonumber(p.fromFrame or p.fromframe or p.from)
-local toFrame = tonumber(p.toFrame or p.toframe or p.to)
-local rangeFrom, rangeTo = parse_frame_range(p.frameRange or p.framerange)
-if rangeFrom and rangeTo then
-  fromFrame = rangeFrom
-  toFrame = rangeTo
-end
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 local layersParam = p.layers or ""
 
@@ -126,12 +108,6 @@ for _, item in ipairs(layers) do
   if columns then args.columns = columns end
   if rows then args.rows = rows end
   if scale then args.scale = scale end
-  if fromFrame and toFrame then
-    args.fromFrame = fromFrame
-    args.toFrame = toFrame
-    args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
-  end
-
   if dataPattern ~= "" then
     local dataName = normalize(string.gsub(dataPattern, "{layer}", item.path))
     ensure_directory(app.fs.filePath(dataName))

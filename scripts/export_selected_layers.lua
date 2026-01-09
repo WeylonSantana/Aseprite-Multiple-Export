@@ -3,7 +3,7 @@
 --   Aseprite.exe -b "file.aseprite" --script-param layers='Group/LayerA|LayerB' ^
 --     --script-param mode=sheet --script-param out='export/selected.png' ^
 --     --script "scripts/export_selected_layers.lua"
--- Optional params: mode (sheet|frames), data, type, columns, rows, scale, from, to
+-- Optional params: mode (sheet|frames), data, type, columns, rows, scale, fromFrame, toFrame
 
 local spr = app.activeSprite or app.sprite
 if not spr then
@@ -17,24 +17,8 @@ local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
 local scale = tonumber(p.scale)
-local function parse_frame_range(value)
-  if not value or value == "" then
-    return nil, nil
-  end
-  local a, b = string.match(value, "^%s*(%d+)%s*,%s*(%d+)%s*$")
-  if a and b then
-    return tonumber(a), tonumber(b)
-  end
-  return nil, nil
-end
-
-local fromFrame = tonumber(p.fromFrame or p.fromframe or p.from) or 1
-local toFrame = tonumber(p.toFrame or p.toframe or p.to) or #spr.frames
-local rangeFrom, rangeTo = parse_frame_range(p.frameRange or p.framerange)
-if rangeFrom and rangeTo then
-  fromFrame = rangeFrom
-  toFrame = rangeTo
-end
+local fromFrame = tonumber(p.fromFrame) or 1
+local toFrame = tonumber(p.toFrame) or #spr.frames
 local mode = p.mode or "sheet"
 local layersParam = p.layers or ""
 
@@ -173,12 +157,6 @@ else
   if columns then args.columns = columns end
   if rows then args.rows = rows end
   if scale then args.scale = scale end
-  if fromFrame and toFrame then
-    args.fromFrame = fromFrame
-    args.toFrame = toFrame
-    args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
-  end
-
   if dataName ~= "" then
     dataName = normalize(dataName)
     ensure_directory(app.fs.filePath(dataName))

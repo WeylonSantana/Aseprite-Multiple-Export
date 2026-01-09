@@ -2,7 +2,7 @@
 -- Usage (PowerShell):
 --   Aseprite.exe -b "file.aseprite" --script-param out='export/{layer}/{frame}.png' ^
 --     --script "scripts/export_every_layer_frames.lua"
--- Optional params: from, to, scale, includeHidden, layers
+-- Optional params: fromFrame, toFrame, scale, includeHidden, layers
 
 local spr = app.activeSprite or app.sprite
 if not spr then
@@ -11,24 +11,8 @@ end
 
 local p = app.params
 local outPattern = p.out or "{layer}/{frame}.png"
-local function parse_frame_range(value)
-  if not value or value == "" then
-    return nil, nil
-  end
-  local a, b = string.match(value, "^%s*(%d+)%s*,%s*(%d+)%s*$")
-  if a and b then
-    return tonumber(a), tonumber(b)
-  end
-  return nil, nil
-end
-
-local fromFrame = tonumber(p.fromFrame or p.fromframe or p.from) or 1
-local toFrame = tonumber(p.toFrame or p.toframe or p.to) or #spr.frames
-local rangeFrom, rangeTo = parse_frame_range(p.frameRange or p.framerange)
-if rangeFrom and rangeTo then
-  fromFrame = rangeFrom
-  toFrame = rangeTo
-end
+local fromFrame = tonumber(p.fromFrame) or 1
+local toFrame = tonumber(p.toFrame) or #spr.frames
 local scale = tonumber(p.scale)
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 local layersParam = p.layers or ""
