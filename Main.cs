@@ -22,7 +22,6 @@ public partial class Main : Form
     private readonly List<string> _files = [];
     private readonly List<string> _layers = [];
     private bool _isLoading = false;
-    private string _lastSelectedItem = string.Empty;
     private string _selectedLayerFile = string.Empty;
     private int _layerLoadToken = 0;
     private CancellationTokenSource? _layerLoadCts;
@@ -32,18 +31,11 @@ public partial class Main : Form
         InitializeComponent();
         lstDebug.Items.Insert(0, "Starting Aseprite Multiple Exporter...");
         string output = ProcessCommand("--version");
+
         if (output.Length == 0)
         {
-            string error = "Aseprite not found. Please insert the path of Aseprite folder to the Path Variable.\n\n";
-            error += "Step 1: Open the folder where Aseprite is installed.\n";
-            error += "Step 2: Copy the path of the folder.\n";
-            error += "Step 3: Type \"Variable\" in the Windows search bar and click on \"Edit the system environment variables\".\n";
-            error += "Step 4: Click on \"Environment Variables\".\n";
-            error += "Step 5: In the \"System variables\" section, click on \"Path\" and then click on \"Edit\".\n";
-            error += "Step 6: Click on \"New\" and paste the path of the Aseprite folder.\n";
-            error += "Step 7: Click on \"OK\" and then click on \"OK\" again.\n";
-            error += "Step 8: Restart this application.\n";
-            error += "Step 9: If the error persists, restart your computer.";
+            string error = "Aseprite not found. Please insert the path of Aseprite folder to the Path Variable of your OS.\n\n";
+            error += "Make sure you can use 'Aseprite.exe --version' command in your terminal/command prompt.\n\n";
             _ = MessageBox.Show(error, "Error - Aseprite not Found!", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Environment.Exit(0);
         }
@@ -88,30 +80,6 @@ public partial class Main : Form
         UpdateForm();
         _isLoading = false;
         lstDebug.Items.Insert(0, "Settings loaded successfully.");
-    }
-
-    private void Main_Save()
-    {
-        if (_isLoading)
-            return;
-
-        Properties.Settings.Default.KeepChanges = KeepChanges;
-        Properties.Settings.Default.FolderPath = KeepChanges ? FolderPath : string.Empty;
-        Properties.Settings.Default.ExportType = KeepChanges ? (int)ExportType : default;
-        Properties.Settings.Default.AllLayers = KeepChanges && chkAllLayers.Checked;
-        Properties.Settings.Default.EveryLayer = KeepChanges && chkEveryLayer.Checked;
-        Properties.Settings.Default.Scale = KeepChanges ? (int)nudScale.Value : default;
-        Properties.Settings.Default.ExportJson = KeepChanges && chkExportJson.Checked;
-        Properties.Settings.Default.SheetExportType = KeepChanges ? cmbSheetExportType.SelectedIndex : default;
-        Properties.Settings.Default.SheetSplitCount = KeepChanges ? (int)nudSplit.Value : default;
-        Properties.Settings.Default.CustomOutputName = KeepChanges ? txtOutputName.Text : string.Empty;
-        Properties.Settings.Default.EnableFrameRange = KeepChanges && chkFrameRange.Checked;
-        Properties.Settings.Default.StartFrame = KeepChanges ? (int)nudFrameRangeMax.Value : 1;
-        Properties.Settings.Default.EndFrame = KeepChanges ? (int)nudFrameRangeMin.Value : 2;
-
-        Properties.Settings.Default.Save();
-        if (KeepChanges)
-            lstDebug.Items.Insert(0, "Settings saved successfully.");
     }
 
     private void UpdateForm()
@@ -169,182 +137,205 @@ public partial class Main : Form
         nudFrameRangeMin.Enabled = FrameRangeEnabled;
         nudFrameRangeMax.Enabled = FrameRangeEnabled;
 
-        Main_Save();
+        // Saving settings
+        if (_isLoading) return;
+
+        Properties.Settings.Default.KeepChanges = KeepChanges;
+        Properties.Settings.Default.FolderPath = KeepChanges ? FolderPath : string.Empty;
+        Properties.Settings.Default.ExportType = KeepChanges ? (int)ExportType : default;
+        Properties.Settings.Default.AllLayers = KeepChanges && chkAllLayers.Checked;
+        Properties.Settings.Default.EveryLayer = KeepChanges && chkEveryLayer.Checked;
+        Properties.Settings.Default.Scale = KeepChanges ? (int)nudScale.Value : default;
+        Properties.Settings.Default.ExportJson = KeepChanges && chkExportJson.Checked;
+        Properties.Settings.Default.SheetExportType = KeepChanges ? cmbSheetExportType.SelectedIndex : default;
+        Properties.Settings.Default.SheetSplitCount = KeepChanges ? (int)nudSplit.Value : default;
+        Properties.Settings.Default.CustomOutputName = KeepChanges ? txtOutputName.Text : string.Empty;
+        Properties.Settings.Default.EnableFrameRange = KeepChanges && chkFrameRange.Checked;
+        Properties.Settings.Default.StartFrame = KeepChanges ? (int)nudFrameRangeMax.Value : 1;
+        Properties.Settings.Default.EndFrame = KeepChanges ? (int)nudFrameRangeMin.Value : 2;
+
+        Properties.Settings.Default.Save();
+        if (KeepChanges) lstDebug.Items.Insert(0, "Settings saved successfully.");
     }
 
-    private void BtnExport_Click(object sender, EventArgs e)
+    private async void BtnExport_Click(object sender, EventArgs e)
     {
         lstDebug.Items.Insert(0, "Exporting files...");
         if (_files.Count == 0)
         {
-            _ = MessageBox.Show("Please select at least one file to export.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _ = MessageBox.Show(
+                "Please select at least one file to export.",
+                "Error - No File Selected!",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
             return;
         }
 
-        // export files if we have no layers or we want to export specific layers
-        if (_layers.Count == 0 && !EveryLayer)
+        if (_layers.Count > 0 && string.IsNullOrEmpty(_selectedLayerFile))
         {
-            ExportFiles();
+            _ = MessageBox.Show(
+                "Please select a single file to export layers from.",
+                "Error - No File Selected!",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
+            return;
+        }
+
+        SetExportingState(true);
+        try
+        {
+            IReadOnlyCollection<string> selectedLayers = _layers.ToList();
+            List<string> selectedFiles = _files.ToList();
+            string selectedLayerFile = _selectedLayerFile;
+
+            await Task.Run(() =>
+            {
+                if (selectedLayers.Count > 0)
+                {
+                    ExportFile(selectedLayerFile, selectedLayers);
+                }
+                else
+                {
+                    foreach (string file in selectedFiles)
+                    {
+                        ExportFile(file, []);
+                    }
+                }
+            });
+
+            lstDebug.Items.Insert(0, $"Export completed successfully for type {ExportType}.");
+            _ = MessageBox.Show(
+                "Export completed successfully.",
+                "Success - Export Completed!",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+        finally
+        {
+            SetExportingState(false);
+        }
+    }
+
+    private void ExportFile(string file, IReadOnlyCollection<string> layers)
+    {
+        if (string.IsNullOrEmpty(file)) return;
+
+        bool hasLayers = layers.Count > 0;
+        string scriptName;
+
+        if (EveryLayer)
+        {
+            scriptName = ExportType == ExportType.EveryFrame
+                ? "export_every_layer_frames.lua"
+                : "export_sheet_per_layer.lua";
+        }
+        else if (ExportType == ExportType.EveryFrame)
+        {
+            scriptName = hasLayers ? "export_selected_layers.lua" : "export_every_frame.lua";
         }
         else
         {
-            ExportLayers();
+            scriptName = hasLayers ? "export_selected_layers.lua" : "export_sprite_sheet.lua";
         }
 
-        lstDebug.Items.Insert(0, $"Export completed successfully for type {ExportType}.");
-        _ = MessageBox.Show("Export completed successfully.", "Success - Export Completed!", MessageBoxButtons.OK, MessageBoxIcon.Information);
-    }
+        Dictionary<string, string> parameters = [];
+        string baseName = Path.GetFileNameWithoutExtension(file);
+        string scaleFolder = $"{Scale}x";
+        bool isSheet = ExportType == ExportType.SpriteSheet;
 
-    private void ExportFiles()
-    {
-        foreach (string file in _files)
-        {
-            if (file == default)
-                continue;
-
-            string command = BuildCommand(file);
-            _ = ProcessCommand(string.Join(" ", command));
-
-            lstDebug.Items.Insert(0, $"Exported {file} to {UpdateOutputName(file)} successfully.");
-        }
-    }
-
-    private void ExportLayers()
-    {
-        if (_layers.Count == 0 && EveryLayer)
-        {
-            string fileForLayers = _selectedLayerFile;
-            if (string.IsNullOrEmpty(fileForLayers))
-            {
-                if (_files.Count == 1)
-                    fileForLayers = _files[0];
-                else
-                {
-                    _ = MessageBox.Show("Please select a single file to export layers from.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-            }
-
-            List<string> lines = LoadLayerLines(fileForLayers, AllLayers, CancellationToken.None);
-            _layers.AddRange(lines);
-            lstLayerList.Items.Clear();
-        }
-
-        foreach (string layer in _layers)
-        {
-            string exportedPath = Path.Combine($"{Scale}x", $"{layer}.png");
-            if (ExportType == ExportType.EveryFrame) exportedPath = exportedPath.Replace(".png", "_{frame}.png");
-
-            string command = BuildCommand(_selectedLayerFile, layer);
-            _ = ProcessCommand(string.Join(" ", command));
-
-            lstDebug.Items.Insert(0, $"Exported layer {layer} from {_selectedLayerFile} to {exportedPath} successfully.");
-        }
-    }
-
-    private string BuildCommand(string file, string layer = "")
-    {
-        List<string> command = ["Aseprite", "-b"];
-
-        if (_layers.Count == 0 && AllLayers)
-        {
-            command.Add("--all-layers");
-        }
-
-        if (ExportType == ExportType.SpriteSheet && FrameRangeEnabled && StartFrame < EndFrame)
-        {
-            command.Add($"--frame-range {StartFrame},{EndFrame}");
-        }
-        else if (ExportType == ExportType.SpriteSheet && FrameRangeEnabled && StartFrame >= EndFrame)
-        {
-            lstDebug.Items.Insert(0, "Frame range is invalid. Please check the values. Ignoring frame range...");
-        }
-
-        if (!string.IsNullOrEmpty(layer) && _layers.Count == 0)
-        {
-            command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
-        }
-        else if (_layers.Count > 0)
-        {
-            if (!string.IsNullOrEmpty(layer) && EveryLayer)
-            {
-                command.Add($"--layer \"{layer.Replace("\\", "/")}\"");
-            }
-            else if (!EveryLayer)
-            {
-                foreach (string l in _layers)
-                {
-                    command.Add($"--layer \"{l.Replace("\\", "/")}\"");
-                }
-            }
-        }
-
-        command.Add($"\"{file}\"");
-        command.Add($"--scale {Scale}");
-        command.Add(ExportType == ExportType.EveryFrame ? "--save-as" : "--sheet");
-
-        string outputName = UpdateOutputName(file, layer);
-        command.Add($"\"{outputName}\"");
-
-        if (ExportType == ExportType.SpriteSheet)
-        {
-            command.Add($"--sheet-type {Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant()}");
-
-            if (SheetExportType == SheetExportType.Rows)
-                command.Add($"--sheet-columns {SheetSplitCount}");
-
-            if (SheetExportType == SheetExportType.Columns)
-                command.Add($"--sheet-rows {SheetSplitCount}");
-
-            if (ExportJson)
-                command.Add($"--list-layers --list-tags --data \"{outputName.Replace(".png", ".json")}\" --format json-array");
-        }
-
-        return string.Join(" ", command);
-    }
-
-    private string UpdateOutputName(string filename, string layer = "")
-    {
+        string outPattern;
         if (!string.IsNullOrEmpty(CustomOutputName))
         {
             if (ExportType == ExportType.EveryFrame)
             {
-                return EveryLayer && string.IsNullOrEmpty(layer)
+                outPattern = EveryLayer
                     ? $"{CustomOutputName}_{{layer}}_{{frame}}.png"
-                    : string.IsNullOrEmpty(layer) ? $"{CustomOutputName}_{{frame}}.png" : $"{CustomOutputName}_{layer}_{{frame}}.png";
+                    : $"{CustomOutputName}_{{frame}}.png";
             }
             else
             {
-                if (!string.IsNullOrEmpty(layer))
-                {
-                    return Path.Combine(CustomOutputName, layer, $"{CustomOutputName}.png");
-                }
+                outPattern = EveryLayer
+                    ? Path.Combine(CustomOutputName, "{layer}", $"{CustomOutputName}.png")
+                    : $"{CustomOutputName}.png";
             }
-
-            return $"{CustomOutputName}.png";
-        }
-
-        string ext = Path.GetExtension(filename);
-        filename = filename.Replace(ext, ".png");
-        ext = ".png";
-
-        if (ExportType == ExportType.EveryFrame)
-        {
-            filename = EveryLayer && string.IsNullOrEmpty(layer)
-                ? filename.Replace(filename, "{layer}_{frame}.png")
-                : string.IsNullOrEmpty(layer) ? filename.Replace(ext, "_{frame}.png") : $"{layer}_{{frame}}.png";
         }
         else
         {
-            if (!string.IsNullOrEmpty(layer))
+            if (ExportType == ExportType.EveryFrame)
             {
-                filename = Path.Combine(Path.GetFileNameWithoutExtension(filename), layer);
-                filename += ext;
+                outPattern = EveryLayer
+                    ? Path.Combine(scaleFolder, "{layer}_{frame}.png")
+                    : Path.Combine(scaleFolder, $"{baseName}_{{frame}}.png");
+            }
+            else
+            {
+                outPattern = EveryLayer
+                    ? Path.Combine(scaleFolder, baseName, "{layer}.png")
+                    : Path.Combine(scaleFolder, $"{baseName}.png");
             }
         }
 
-        filename = Path.Combine($"{Scale}x", filename);
-        return filename;
+        parameters["out"] = outPattern.Replace("\\", "/");
+
+        if (scriptName == "export_selected_layers.lua")
+            parameters["mode"] = ExportType == ExportType.EveryFrame ? "frames" : "sheet";
+
+        if (EveryLayer || hasLayers)
+        {
+            string layerValue = string.Join("|", layers.Select(layer => layer.Replace("\\", "/")));
+            if (!string.IsNullOrEmpty(layerValue))
+                parameters["layers"] = layerValue;
+        }
+
+        if (AllLayers && scriptName != "export_selected_layers.lua")
+            parameters["includeHidden"] = "true";
+
+        if (FrameRangeEnabled && StartFrame < EndFrame)
+        {
+            parameters["from"] = StartFrame.ToString();
+            parameters["to"] = EndFrame.ToString();
+        }
+        else if (FrameRangeEnabled && StartFrame >= EndFrame)
+        {
+            SafeLog("Frame range is invalid. Please check the values. Ignoring frame range...");
+        }
+
+        if (scriptName is "export_every_frame.lua" or "export_every_layer_frames.lua" or "export_selected_layers.lua")
+            parameters["scale"] = Scale.ToString();
+
+        if (isSheet)
+        {
+            parameters["type"] = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
+
+            if (SheetExportType == SheetExportType.Rows)
+                parameters["columns"] = SheetSplitCount.ToString();
+
+            if (SheetExportType == SheetExportType.Columns)
+                parameters["rows"] = SheetSplitCount.ToString();
+
+            if (ExportJson)
+            {
+                string dataPattern = Path.ChangeExtension(outPattern, ".json").Replace("\\", "/");
+                parameters["data"] = dataPattern;
+            }
+
+            parameters["scale"] = Scale.ToString();
+        }
+
+        string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
+        List<string> args = [$"-b \"{file}\""];
+
+        foreach ((string key, string value) in parameters)
+            if (!string.IsNullOrEmpty(value)) args.Add($"--script-param {key}=\"{value}\"");
+
+        args.Add($"--script \"{scriptPath}\"");
+        string command = string.Join(" ", args);
+        _ = ProcessCommand(command);
+
+        SafeLog($"Exported {file}.");
     }
 
     private void BasicControl_Changed(object sender, EventArgs e) => UpdateForm();
@@ -360,17 +351,6 @@ public partial class Main : Form
         }
     }
 
-    private void LstFilelist_MouseDown(object sender, MouseEventArgs e)
-    {
-        Point mousePos = e.Location;
-        int index = lstFilelist.IndexFromPoint(mousePos);
-
-        if (index != ListBox.NoMatches)
-        {
-            _lastSelectedItem = lstFilelist.Items[index].ToString() ?? string.Empty;
-        }
-    }
-
     private void LstFilelist_SelectedIndexChanged(object sender, EventArgs e)
     {
         _files.Clear();
@@ -382,8 +362,7 @@ public partial class Main : Form
         if (lstFilelist.SelectedItems.Count == 1)
         {
             string file = lstFilelist.SelectedItems[0]?.ToString() ?? string.Empty;
-            if (!string.IsNullOrEmpty(file))
-                QueueLayerLoad(file);
+            if (!string.IsNullOrEmpty(file)) QueueLayerLoad(file);
         }
         else
         {
@@ -397,8 +376,7 @@ public partial class Main : Form
 
     private void QueueLayerLoad(string file)
     {
-        if (string.IsNullOrEmpty(file))
-            return;
+        if (string.IsNullOrEmpty(file)) return;
 
         _layerLoadCts?.Cancel();
         _layerLoadCts?.Dispose();
@@ -422,8 +400,7 @@ public partial class Main : Form
             }
         }).ContinueWith(task =>
         {
-            if (token != _layerLoadToken)
-                return;
+            if (token != _layerLoadToken) return;
 
             if (task.Result.Error != null)
             {
@@ -444,7 +421,7 @@ public partial class Main : Form
             if (lstFilelist.SelectedItems.Count == 1 &&
                 string.Equals(lstFilelist.SelectedItems[0]?.ToString(), file, StringComparison.Ordinal))
             {
-                lstLayerList.Items.AddRange(task.Result.Lines.ToArray());
+                lstLayerList.Items.AddRange([.. task.Result.Lines]);
                 _selectedLayerFile = file;
             }
             lstDebug.Items.Insert(0, "Layers loaded successfully.");
@@ -490,8 +467,7 @@ public partial class Main : Form
         finalCommand += $" --script \"{scriptPath.Replace("\\", "/")}\"";
         _ = ProcessCommandCancelable(finalCommand, cancellationToken);
 
-        if (!File.Exists(outputPath))
-            throw new FileNotFoundException("Layer list file not found.", outputPath);
+        if (!File.Exists(outputPath)) throw new FileNotFoundException("Layer list file not found.", outputPath);
 
         string fileData = File.ReadAllText(outputPath);
         AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>()!;
@@ -506,6 +482,46 @@ public partial class Main : Form
     {
         lblLayerList.Text = isLoading ? "Layer List (Loading...)" : "Layer List:";
         lstLayerList.Enabled = !isLoading;
+    }
+
+    private void SetExportingState(bool isExporting)
+    {
+        btnExport.Enabled = !isExporting;
+        btnExport.Text = isExporting ? "Exporting..." : "Export!";
+
+        lstFilelist.Enabled = !isExporting;
+        lstLayerList.Enabled = !isExporting && lblLayerList.Text != "Layer List (Loading...)";
+        btnSearchFolder.Enabled = !isExporting;
+        btnResetOutput.Enabled = !isExporting;
+        btnResetFileListSelection.Enabled = !isExporting;
+        btnResetLayerListSelection.Enabled = !isExporting;
+
+        chkKeepChanges.Enabled = !isExporting;
+        rdoEveryFrame.Enabled = !isExporting;
+        rdoSpriteSheet.Enabled = !isExporting;
+        chkEveryLayer.Enabled = !isExporting;
+        chkAllLayers.Enabled = !isExporting;
+        nudScale.Enabled = !isExporting;
+        cmbSheetExportType.Enabled = !isExporting;
+        nudSplit.Enabled = !isExporting;
+        chkExportJson.Enabled = !isExporting;
+        txtOutputName.Enabled = !isExporting;
+        chkFrameRange.Enabled = !isExporting;
+        nudFrameRangeMin.Enabled = !isExporting && chkFrameRange.Checked;
+        nudFrameRangeMax.Enabled = !isExporting && chkFrameRange.Checked;
+        UseWaitCursor = isExporting;
+    }
+
+    private void SafeLog(string message)
+    {
+        if (InvokeRequired)
+        {
+            _ = BeginInvoke(() => lstDebug.Items.Insert(0, message));
+        }
+        else
+        {
+            lstDebug.Items.Insert(0, message);
+        }
     }
 
     private string ProcessCommandCancelable(string command, CancellationToken cancellationToken)

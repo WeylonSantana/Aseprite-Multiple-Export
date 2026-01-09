@@ -113,7 +113,6 @@
             lstFilelist.Size = new Size(449, 199);
             lstFilelist.TabIndex = 3;
             lstFilelist.SelectedIndexChanged += LstFilelist_SelectedIndexChanged;
-            lstFilelist.MouseDown += LstFilelist_MouseDown;
             // 
             // chkKeepChanges
             // 
