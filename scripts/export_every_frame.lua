@@ -11,7 +11,6 @@ end
 
 local p = app.params
 local outPattern = p.out or "{frame}.png"
-local logPath = p.logPath or p.logpath or "output.txt"
 local function parse_frame_range(value)
   if not value or value == "" then
     return nil, nil
@@ -66,32 +65,7 @@ local function ensure_directory(path)
   end
 end
 
-local function log(message)
-  local path = normalize(logPath)
-  ensure_directory(app.fs.filePath(path))
-  local f = io.open(path, "a")
-  if f then
-    f:write(message, "\n")
-    f:close()
-  end
-end
-
-log("export_every_frame.lua start")
-log("out=" .. tostring(outPattern))
-log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
-log("scale=" .. tostring(scale))
-log("includeHidden=" .. tostring(includeHidden))
-log("logPath=" .. tostring(logPath))
-
-local function apply_frame_tokens(pattern, frameIndex)
-  local value = frameIndex
-  local result = pattern
-  result = string.gsub(result, "{frame0001}", string.format("%04d", value))
-  result = string.gsub(result, "{frame001}", string.format("%03d", value))
-  result = string.gsub(result, "{frame01}", string.format("%02d", value))
-  result = string.gsub(result, "{frame}", tostring(value))
-  return result
-end
+-- Single save with filename pattern to export the frame range.
 
 local allLayers = {}
 local function is_group(layer)
@@ -127,8 +101,6 @@ end
 
 local outputName = normalize(outPattern)
 ensure_directory(app.fs.filePath(outputName))
-log("batch output=" .. tostring(outputName))
-log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
 local args = {
   ui = false,
   filename = outputName,
@@ -136,15 +108,10 @@ local args = {
   toFrame = toFrame,
 }
 if scale then args.scale = scale end
-local okSave, errSave = pcall(function() app.command.SaveFileCopyAs(args) end)
-if not okSave then
-  log("save error=" .. tostring(errSave))
-end
+app.command.SaveFileCopyAs(args)
 
 if includeHidden then
   for _, layer in ipairs(allLayers) do
     layer.isVisible = previousVisibility[layer]
   end
 end
-
-log("export_every_frame.lua done")

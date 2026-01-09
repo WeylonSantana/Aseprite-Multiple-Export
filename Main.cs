@@ -31,7 +31,6 @@ public partial class Main : Form
     public Main()
     {
         InitializeComponent();
-        ClearLogFiles();
         lstDebug.Items.Insert(0, "Starting Aseprite Multiple Exporter...");
         string output = ProcessCommand("--version");
 
@@ -179,7 +178,6 @@ public partial class Main : Form
         }
 
         UpdateForm();
-        ClearLogFiles();
         lstDebug.Items.Insert(0, "Exporting files...");
         if (_files.Count == 0)
         {
@@ -273,8 +271,6 @@ public partial class Main : Form
         {
             scriptName = hasLayers ? "export_selected_layers.lua" : "export_sprite_sheet.lua";
         }
-
-        string logPath = EnsureLogFile(GetScriptLogName(scriptName));
 
         Dictionary<string, string> parameters = [];
         string baseName = Path.GetFileNameWithoutExtension(file);
@@ -371,6 +367,7 @@ public partial class Main : Form
             parameters["scale"] = Scale.ToString();
         }
 
+        // SpriteSheet frame range must use CLI; the script API does not support it.
         if (isSheet && FrameRangeEnabled)
         {
             string cliCommand = BuildSpriteSheetCliCommand(file, layers, outPattern, frameRangeValue);
@@ -380,7 +377,6 @@ public partial class Main : Form
         }
 
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
-        string normalizedLogPath = logPath.Replace("\\", "/");
         List<string> args = ["-b"];
         if (!string.IsNullOrEmpty(frameRangeValue))
             args.Add($"--frame-range {frameRangeValue}");
@@ -389,7 +385,6 @@ public partial class Main : Form
         foreach ((string key, string value) in parameters)
             if (!string.IsNullOrEmpty(value)) args.Add($"--script-param {key}=\"{value}\"");
 
-        args.Add($"--script-param logPath=\"{normalizedLogPath}\"");
         args.Add($"--script \"{scriptPath}\"");
         string commandLine = string.Join(" ", args);
         _ = ProcessCommandCancelable(commandLine, token);
@@ -427,6 +422,7 @@ public partial class Main : Form
         }
         else if (layers.Count > 0)
         {
+            // CLI options affect the next file; layers must come before the file path.
             foreach (string layer in layers)
                 args.Add($"--layer \"{layer.Replace("\\", "/")}\"");
         }
@@ -562,7 +558,6 @@ public partial class Main : Form
 
     private List<string> LoadLayerLines(string file, bool includeHidden, CancellationToken cancellationToken)
     {
-        string logPath = EnsureLogFile("list_layers.log.txt");
         string outputName = file.Replace(Path.GetExtension(file), ".layers.json");
         string outputPath = Path.Combine(FolderPath, outputName);
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", "list_layers.lua");
@@ -570,7 +565,6 @@ public partial class Main : Form
 
         string finalCommand = $"-b \"{file}\" --script-param out=\"{outputPath.Replace("\\", "/")}\"";
         finalCommand += $" --script-param includeHidden={includeHiddenValue}";
-        finalCommand += $" --script-param logPath=\"{logPath.Replace("\\", "/")}\"";
         finalCommand += $" --script \"{scriptPath.Replace("\\", "/")}\"";
         _ = ProcessCommandCancelable(finalCommand, cancellationToken);
 
@@ -591,58 +585,6 @@ public partial class Main : Form
         lstLayerList.Enabled = !isLoading;
     }
 
-    private string EnsureLogFile(string fileName)
-    {
-        string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-            File.AppendAllText(logPath, $"--- {DateTime.Now:yyyy-MM-dd HH:mm:ss} ---{Environment.NewLine}");
-        }
-        catch
-        {
-            // Best effort logging.
-        }
-
-        return logPath;
-    }
-
-    private static string GetScriptLogName(string scriptName)
-    {
-        return scriptName switch
-        {
-            "export_every_frame.lua" => "export_every_frame.log.txt",
-            "export_every_layer_frames.lua" => "export_every_layer_frames.log.txt",
-            "export_selected_layers.lua" => "export_selected_layers.log.txt",
-            "export_sprite_sheet.lua" => "export_sprite_sheet.log.txt",
-            "export_sheet_per_layer.lua" => "export_sheet_per_layer.log.txt",
-            _ => "export.log.txt",
-        };
-    }
-
-    private void ClearLogFiles()
-    {
-        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        string[] logFiles =
-        [
-            "export_every_frame.log.txt",
-            "export_every_layer_frames.log.txt",
-            "export_selected_layers.log.txt",
-            "export_sprite_sheet.log.txt",
-            "export_sheet_per_layer.log.txt",
-            "export.log.txt",
-            "list_layers.log.txt",
-        ];
-
-        foreach (string name in logFiles)
-        {
-            string path = Path.Combine(baseDir, name);
-            if (File.Exists(path))
-            {
-                try { File.Delete(path); } catch { }
-            }
-        }
-    }
 
     private void SetExportingState(bool isExporting)
     {

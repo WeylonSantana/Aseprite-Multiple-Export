@@ -12,7 +12,6 @@ end
 local p = app.params
 local outPattern = p.out or "{layer}.png"
 local dataPattern = p.data or ""
-local logPath = p.logPath or p.logpath or "output.txt"
 local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
@@ -65,27 +64,6 @@ local function ensure_directory(path)
   end
 end
 
-local function log(message)
-  local path = normalize(logPath)
-  ensure_directory(app.fs.filePath(path))
-  local f = io.open(path, "a")
-  if f then
-    f:write(message, "\n")
-    f:close()
-  end
-end
-
-log("export_sheet_per_layer.lua start")
-log("out=" .. tostring(outPattern))
-log("data=" .. tostring(dataPattern))
-log("type=" .. tostring(sheetType))
-log("columns=" .. tostring(columns) .. " rows=" .. tostring(rows))
-log("scale=" .. tostring(scale))
-log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
-log("includeHidden=" .. tostring(includeHidden))
-log("layersParam=" .. tostring(layersParam))
-log("logPath=" .. tostring(logPath))
-
 local function is_group(layer)
   local ok, val = pcall(function() return layer.isGroup end)
   if ok and type(val) == "boolean" then
@@ -113,14 +91,12 @@ local function collect_layers(parent, prefix)
 end
 
 collect_layers(spr, "")
-log("layers=" .. tostring(#layers))
 
 local wanted = {}
 if layersParam ~= "" then
   for part in string.gmatch(layersParam, "[^|]+") do
     local normalized = string.gsub(part, "\\", "/")
     wanted[normalized] = true
-    log("wanted=" .. tostring(normalized))
   end
 end
 
@@ -134,13 +110,11 @@ end
 
 for _, item in ipairs(layers) do
   if next(wanted) ~= nil and not wanted[item.path] then
-    log("skipping layer=" .. tostring(item.path))
     goto continue
   end
 
   local outputName = normalize(string.gsub(outPattern, "{layer}", item.path))
   ensure_directory(app.fs.filePath(outputName))
-  log("export layer=" .. tostring(item.path) .. " output=" .. tostring(outputName))
 
   local args = {
     ui = false,
@@ -156,7 +130,6 @@ for _, item in ipairs(layers) do
     args.fromFrame = fromFrame
     args.toFrame = toFrame
     args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
-    log("frameRange=" .. tostring(fromFrame) .. "," .. tostring(toFrame))
   end
 
   if dataPattern ~= "" then
@@ -166,7 +139,6 @@ for _, item in ipairs(layers) do
     args.listLayers = true
     args.listTags = true
     args.dataFormat = "json-array"
-    log("layer data=" .. tostring(dataName))
   end
 
   app.command.ExportSpriteSheet(args)
@@ -178,5 +150,3 @@ if includeHidden then
     item.layer.isVisible = previousVisibility[item.layer]
   end
 end
-
-log("export_sheet_per_layer.lua done")

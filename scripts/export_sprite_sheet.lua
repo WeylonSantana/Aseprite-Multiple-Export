@@ -12,7 +12,6 @@ end
 local p = app.params
 local outName = p.out or "sheet.png"
 local dataName = p.data or ""
-local logPath = p.logPath or p.logpath or "output.txt"
 local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
@@ -64,26 +63,6 @@ local function ensure_directory(path)
   end
 end
 
-local function log(message)
-  local path = normalize(logPath)
-  ensure_directory(app.fs.filePath(path))
-  local f = io.open(path, "a")
-  if f then
-    f:write(message, "\n")
-    f:close()
-  end
-end
-
-log("export_sprite_sheet.lua start")
-log("out=" .. tostring(outName))
-log("data=" .. tostring(dataName))
-log("type=" .. tostring(sheetType))
-log("columns=" .. tostring(columns) .. " rows=" .. tostring(rows))
-log("scale=" .. tostring(scale))
-log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
-log("includeHidden=" .. tostring(includeHidden))
-log("logPath=" .. tostring(logPath))
-
 local allLayers = {}
 local function is_group(layer)
   local ok, val = pcall(function() return layer.isGroup end)
@@ -118,7 +97,6 @@ end
 
 outName = normalize(outName)
 ensure_directory(app.fs.filePath(outName))
-log("sheet output=" .. tostring(outName))
 
 local args = {
   ui = false,
@@ -133,7 +111,6 @@ if fromFrame and toFrame then
   args.fromFrame = fromFrame
   args.toFrame = toFrame
   args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
-  log("frameRange=" .. tostring(fromFrame) .. "," .. tostring(toFrame))
 end
 
 if dataName ~= "" then
@@ -143,7 +120,6 @@ if dataName ~= "" then
   args.listLayers = true
   args.listTags = true
   args.dataFormat = "json-array"
-  log("sheet data=" .. tostring(dataName))
 end
 
 app.command.ExportSpriteSheet(args)
@@ -153,5 +129,3 @@ if includeHidden then
     layer.isVisible = previousVisibility[layer]
   end
 end
-
-log("export_sprite_sheet.lua done")

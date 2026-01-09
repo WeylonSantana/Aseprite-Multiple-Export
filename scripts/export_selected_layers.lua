@@ -13,7 +13,6 @@ end
 local p = app.params
 local outPattern = p.out or "selected.png"
 local dataName = p.data or ""
-local logPath = p.logPath or p.logpath or "output.txt"
 local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
@@ -76,35 +75,7 @@ local function ensure_directory(path)
   end
 end
 
-local function log(message)
-  local path = normalize(logPath)
-  ensure_directory(app.fs.filePath(path))
-  local f = io.open(path, "a")
-  if f then
-    f:write(message, "\n")
-    f:close()
-  end
-end
-
-log("export_selected_layers.lua start")
-log("mode=" .. tostring(mode))
-log("out=" .. tostring(outPattern))
-log("data=" .. tostring(dataName))
-log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
-log("scale=" .. tostring(scale))
-log("layersParam=" .. tostring(layersParam))
-log("logPath=" .. tostring(logPath))
-log("includeHiddenParam=" .. tostring(p.includeHidden))
-
-local function apply_frame_tokens(pattern, frameIndex)
-  local value = frameIndex
-  local result = pattern
-  result = string.gsub(result, "{frame0001}", string.format("%04d", value))
-  result = string.gsub(result, "{frame001}", string.format("%03d", value))
-  result = string.gsub(result, "{frame01}", string.format("%02d", value))
-  result = string.gsub(result, "{frame}", tostring(value))
-  return result
-end
+-- Export selected layers either as frames or as a spritesheet.
 
 local function is_group(layer)
   local ok, val = pcall(function() return layer.isGroup end)
@@ -122,7 +93,6 @@ local wanted = {}
 for part in string.gmatch(layersParam, "[^|]+") do
   local normalized = string.gsub(part, "\\", "/")
   wanted[normalized] = true
-  log("wanted=" .. tostring(normalized))
 end
 
 local allLayers = {}
@@ -173,11 +143,8 @@ end
 for path, _ in pairs(wanted) do
   local layer = layerMap[path]
   if layer then
-    log("enable layer=" .. tostring(path))
     set_subtree_visible(layer)
     set_parent_visible(layer)
-  else
-    log("missing layer=" .. tostring(path))
   end
 end
 if app.refresh then app.refresh() end
@@ -185,7 +152,6 @@ if app.refresh then app.refresh() end
 if mode == "frames" then
   local outputName = normalize(outPattern)
   ensure_directory(app.fs.filePath(outputName))
-  log("batch output=" .. tostring(outputName))
   local args = {
     ui = false,
     filename = outputName,
@@ -197,7 +163,6 @@ if mode == "frames" then
 else
   local outputName = normalize(outPattern)
   ensure_directory(app.fs.filePath(outputName))
-  log("sheet output=" .. tostring(outputName))
 
   local args = {
     ui = false,
@@ -212,7 +177,6 @@ else
     args.fromFrame = fromFrame
     args.toFrame = toFrame
     args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
-    log("frameRange=" .. tostring(fromFrame) .. "," .. tostring(toFrame))
   end
 
   if dataName ~= "" then
@@ -222,7 +186,6 @@ else
     args.listLayers = true
     args.listTags = true
     args.dataFormat = "json-array"
-    log("sheet data=" .. tostring(dataName))
   end
 
   app.command.ExportSpriteSheet(args)
@@ -231,5 +194,3 @@ end
 for _, layer in ipairs(allLayers) do
   layer.isVisible = previousVisibility[layer]
 end
-
-log("export_selected_layers.lua done")
