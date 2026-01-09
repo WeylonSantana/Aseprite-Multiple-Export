@@ -404,15 +404,6 @@ public partial class Main : Form
             parameters["scale"] = Scale.ToString();
         }
 
-        // SpriteSheet frame range must use CLI; the script API does not support it.
-        if (isSheet && FrameRangeEnabled)
-        {
-            string cliCommand = BuildSpriteSheetCliCommand(file, layers, outPattern, frameRangeValue);
-            _ = ProcessCommandCancelable(cliCommand, token);
-            SafeLog($"Exported {file}.");
-            return;
-        }
-
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
         List<string> args = ["-b"];
         if (!string.IsNullOrEmpty(frameRangeValue))
@@ -429,59 +420,6 @@ public partial class Main : Form
         SafeLog($"Exported {file}.");
     }
 
-    private string BuildSpriteSheetCliCommand(string file, IReadOnlyCollection<string> layers, string outPattern, string frameRangeValue)
-    {
-        List<string> args = ["-b"];
-
-        if (!string.IsNullOrEmpty(frameRangeValue))
-            args.Add($"--frame-range {frameRangeValue}");
-
-        if (AllLayers)
-            args.Add("--all-layers");
-
-        string sheetType = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
-        if (SheetExportType == SheetExportType.Rows)
-        {
-            sheetType = "columns";
-            args.Add($"--sheet-rows {SheetSplitCount}");
-        }
-        else if (SheetExportType == SheetExportType.Columns)
-        {
-            sheetType = "rows";
-            args.Add($"--sheet-columns {SheetSplitCount}");
-        }
-
-        args.Add($"--sheet-type {sheetType}");
-
-        if (EveryLayer && layers.Count == 0)
-        {
-            args.Add("--split-layers");
-        }
-        else if (layers.Count > 0)
-        {
-            // CLI options affect the next file; layers must come before the file path.
-            foreach (string layer in layers)
-                args.Add($"--layer \"{layer.Replace("\\", "/")}\"");
-        }
-
-        string fileArg = $"\"{file}\"";
-        args.Add(fileArg);
-
-        args.Add($"--scale {Scale}");
-        args.Add("--sheet");
-        args.Add($"\"{outPattern.Replace("\\", "/")}\"");
-
-        if (ExportJson)
-        {
-            string dataPattern = Path.ChangeExtension(outPattern, ".json").Replace("\\", "/");
-            args.Add("--list-layers");
-            args.Add("--list-tags");
-            args.Add($"--data \"{dataPattern}\"");
-            args.Add("--format json-array");
-        }
-
-        return string.Join(" ", args);
-    }
 
     private void BasicControl_Changed(object sender, EventArgs e) => UpdateForm();
 
