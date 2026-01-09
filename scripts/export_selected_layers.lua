@@ -17,8 +17,8 @@ local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
 local scale = tonumber(p.scale)
-local fromFrame = tonumber(p.from) or 1
-local toFrame = tonumber(p.to) or #spr.frames
+local fromFrame = tonumber(p.fromFrame) or 1
+local toFrame = tonumber(p.toFrame) or #spr.frames
 local mode = p.mode or "sheet"
 local layersParam = p.layers or ""
 
@@ -74,7 +74,11 @@ local function is_group(layer)
   if ok and type(val) == "boolean" then
     return val
   end
-  return layer.layers ~= nil
+  local ok2, val2 = pcall(function() return layer.layers end)
+  if ok2 and type(val2) == "table" then
+    return next(val2) ~= nil
+  end
+  return false
 end
 
 local wanted = {}
@@ -129,18 +133,19 @@ for path, _ in pairs(wanted) do
 end
 
 if mode == "frames" then
+  local originalFrame = app.frame
   for i = fromFrame, toFrame do
     local outputName = normalize(apply_frame_tokens(outPattern, i))
     ensure_directory(app.fs.filePath(outputName))
+    app.frame = spr.frames[i]
     local args = {
       ui = false,
-      textureFilename = outputName,
-      fromFrame = i,
-      toFrame = i,
+      filename = outputName,
     }
     if scale then args.scale = scale end
-    app.command.ExportSpriteSheet(args)
+    app.command.SaveFileCopyAs(args)
   end
+  app.frame = originalFrame
 else
   local outputName = normalize(outPattern)
   ensure_directory(app.fs.filePath(outputName))
@@ -154,8 +159,9 @@ else
   if columns then args.columns = columns end
   if rows then args.rows = rows end
   if scale then args.scale = scale end
-  if fromFrame then args.fromFrame = fromFrame end
-  if toFrame then args.toFrame = toFrame end
+  if fromFrame and toFrame then
+    args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
+  end
 
   if dataName ~= "" then
     dataName = normalize(dataName)
@@ -163,7 +169,7 @@ else
     args.dataFilename = dataName
     args.listLayers = true
     args.listTags = true
-    args.format = "json-array"
+    args.dataFormat = "json-array"
   end
 
   app.command.ExportSpriteSheet(args)

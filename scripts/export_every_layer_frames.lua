@@ -11,8 +11,8 @@ end
 
 local p = app.params
 local outPattern = p.out or "{layer}/{frame}.png"
-local fromFrame = tonumber(p.from) or 1
-local toFrame = tonumber(p.to) or #spr.frames
+local fromFrame = tonumber(p.fromFrame) or 1
+local toFrame = tonumber(p.toFrame) or #spr.frames
 local scale = tonumber(p.scale)
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 local layersParam = p.layers or ""
@@ -65,15 +65,17 @@ local function is_group(layer)
   if ok and type(val) == "boolean" then
     return val
   end
-  return layer.layers ~= nil
+  local ok2, val2 = pcall(function() return layer.layers end)
+  if ok2 and type(val2) == "table" then
+    return next(val2) ~= nil
+  end
+  return false
 end
 
-local allLayers = {}
 local leafLayers = {}
 local function collect_layers(parent, prefix)
   for _, layer in ipairs(parent.layers) do
     local path = prefix ~= "" and (prefix .. "/" .. layer.name) or layer.name
-    table.insert(allLayers, layer)
     if is_group(layer) then
       collect_layers(layer, path)
     else
@@ -91,45 +93,35 @@ if layersParam ~= "" then
   end
 end
 
-local previousVisibility = {}
-for _, layer in ipairs(allLayers) do
-  previousVisibility[layer] = layer.isVisible
-end
-
-local function set_parent_visible(layer)
+local function is_effectively_visible(layer)
+  if not layer.isVisible then
+    return false
+  end
   local parent = layer.parent
   while parent do
-    parent.isVisible = true
+    if not parent.isVisible then
+      return false
+    end
     parent = parent.parent
   end
+  return true
 end
 
 for _, item in ipairs(leafLayers) do
-  if (includeHidden or previousVisibility[item.layer]) and
+  if (includeHidden or is_effectively_visible(item.layer)) and
      (next(wanted) == nil or wanted[item.path]) then
-    for _, layer in ipairs(allLayers) do
-      layer.isVisible = false
-    end
-
-    item.layer.isVisible = true
-    set_parent_visible(item.layer)
-
     for i = fromFrame, toFrame do
       local outputName = normalize(string.gsub(outPattern, "{layer}", item.path))
       outputName = apply_frame_tokens(outputName, i)
       ensure_directory(app.fs.filePath(outputName))
       local args = {
         ui = false,
+        layer = item.path,
         textureFilename = outputName,
-        fromFrame = i,
-        toFrame = i,
+        frameRange = tostring(i) .. "," .. tostring(i),
       }
       if scale then args.scale = scale end
       app.command.ExportSpriteSheet(args)
     end
   end
-end
-
-for _, layer in ipairs(allLayers) do
-  layer.isVisible = previousVisibility[layer]
 end

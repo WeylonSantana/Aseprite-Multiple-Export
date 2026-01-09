@@ -25,6 +25,7 @@ public partial class Main : Form
     private string _selectedLayerFile = string.Empty;
     private int _layerLoadToken = 0;
     private CancellationTokenSource? _layerLoadCts;
+    private bool _suppressFileSelectionChanged = false;
 
     public Main()
     {
@@ -127,7 +128,7 @@ public partial class Main : Form
         grpSpritesheetOptions.Visible = ExportType == ExportType.SpriteSheet;
         nudSplit.Visible = SheetExportType is SheetExportType.Rows or SheetExportType.Columns;
         lblSplit.Visible = SheetExportType is SheetExportType.Rows or SheetExportType.Columns;
-        lblSplit.Text = SheetExportType == SheetExportType.Rows ? "Columns" : "Rows";
+        lblSplit.Text = SheetExportType == SheetExportType.Rows ? "Rows" : "Columns";
 
         CustomOutputName = txtOutputName.Text;
         FrameRangeEnabled = chkFrameRange.Checked;
@@ -151,8 +152,8 @@ public partial class Main : Form
         Properties.Settings.Default.SheetSplitCount = KeepChanges ? (int)nudSplit.Value : default;
         Properties.Settings.Default.CustomOutputName = KeepChanges ? txtOutputName.Text : string.Empty;
         Properties.Settings.Default.EnableFrameRange = KeepChanges && chkFrameRange.Checked;
-        Properties.Settings.Default.StartFrame = KeepChanges ? (int)nudFrameRangeMax.Value : 1;
-        Properties.Settings.Default.EndFrame = KeepChanges ? (int)nudFrameRangeMin.Value : 2;
+        Properties.Settings.Default.StartFrame = KeepChanges ? (int)nudFrameRangeMin.Value : 1;
+        Properties.Settings.Default.EndFrame = KeepChanges ? (int)nudFrameRangeMax.Value : 2;
 
         Properties.Settings.Default.Save();
         if (KeepChanges) lstDebug.Items.Insert(0, "Settings saved successfully.");
@@ -160,6 +161,7 @@ public partial class Main : Form
 
     private async void BtnExport_Click(object sender, EventArgs e)
     {
+        UpdateForm();
         lstDebug.Items.Insert(0, "Exporting files...");
         if (_files.Count == 0)
         {
@@ -293,14 +295,14 @@ public partial class Main : Form
         if (AllLayers && scriptName != "export_selected_layers.lua")
             parameters["includeHidden"] = "true";
 
-        if (FrameRangeEnabled && StartFrame < EndFrame)
+        if (FrameRangeEnabled)
         {
-            parameters["from"] = StartFrame.ToString();
-            parameters["to"] = EndFrame.ToString();
-        }
-        else if (FrameRangeEnabled && StartFrame >= EndFrame)
-        {
-            SafeLog("Frame range is invalid. Please check the values. Ignoring frame range...");
+            int from = Math.Min(StartFrame, EndFrame);
+            int to = Math.Max(StartFrame, EndFrame);
+            parameters["fromFrame"] = from.ToString();
+            parameters["toFrame"] = to.ToString();
+            if (StartFrame > EndFrame)
+                SafeLog("Frame range values were inverted. Using the corrected range.");
         }
 
         if (scriptName is "export_every_frame.lua" or "export_every_layer_frames.lua" or "export_selected_layers.lua")
@@ -308,13 +310,21 @@ public partial class Main : Form
 
         if (isSheet)
         {
-            parameters["type"] = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
+            string sheetType = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
 
             if (SheetExportType == SheetExportType.Rows)
-                parameters["columns"] = SheetSplitCount.ToString();
+            {
+                sheetType = "columns";
+                parameters["rows"] = SheetSplitCount.ToString();
+            }
 
             if (SheetExportType == SheetExportType.Columns)
-                parameters["rows"] = SheetSplitCount.ToString();
+            {
+                sheetType = "rows";
+                parameters["columns"] = SheetSplitCount.ToString();
+            }
+
+            parameters["type"] = sheetType;
 
             if (ExportJson)
             {
@@ -353,6 +363,8 @@ public partial class Main : Form
 
     private void LstFilelist_SelectedIndexChanged(object sender, EventArgs e)
     {
+        if (_suppressFileSelectionChanged || !lstFilelist.Enabled) return;
+
         _files.Clear();
         foreach (object? item in lstFilelist.SelectedItems)
         {
@@ -443,8 +455,17 @@ public partial class Main : Form
         }
         else
         {
-            lstFilelist.SelectedItems.Clear();
-            lstFilelist.SelectedItem = _selectedLayerFile;
+            _suppressFileSelectionChanged = true;
+            try
+            {
+                lstFilelist.ClearSelected();
+                int index = lstFilelist.Items.IndexOf(_selectedLayerFile);
+                if (index >= 0) lstFilelist.SelectedIndex = index;
+            }
+            finally
+            {
+                _suppressFileSelectionChanged = false;
+            }
             lstFilelist.Enabled = false;
         }
     }

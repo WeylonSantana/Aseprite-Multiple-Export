@@ -16,8 +16,8 @@ local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
 local scale = tonumber(p.scale)
-local fromFrame = tonumber(p.from)
-local toFrame = tonumber(p.to)
+local fromFrame = tonumber(p.fromFrame)
+local toFrame = tonumber(p.toFrame)
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 local layersParam = p.layers or ""
 
@@ -53,7 +53,11 @@ local function is_group(layer)
   if ok and type(val) == "boolean" then
     return val
   end
-  return layer.layers ~= nil
+  local ok2, val2 = pcall(function() return layer.layers end)
+  if ok2 and type(val2) == "table" then
+    return next(val2) ~= nil
+  end
+  return false
 end
 
 local layers = {}
@@ -105,8 +109,9 @@ for _, item in ipairs(layers) do
   if columns then args.columns = columns end
   if rows then args.rows = rows end
   if scale then args.scale = scale end
-  if fromFrame then args.fromFrame = fromFrame end
-  if toFrame then args.toFrame = toFrame end
+  if fromFrame and toFrame then
+    args.frameRange = tostring(fromFrame) .. "," .. tostring(toFrame)
+  end
 
   if dataPattern ~= "" then
     local dataName = normalize(string.gsub(dataPattern, "{layer}", item.path))
@@ -114,7 +119,7 @@ for _, item in ipairs(layers) do
     args.dataFilename = dataName
     args.listLayers = true
     args.listTags = true
-    args.format = "json-array"
+    args.dataFormat = "json-array"
   end
 
   app.command.ExportSpriteSheet(args)

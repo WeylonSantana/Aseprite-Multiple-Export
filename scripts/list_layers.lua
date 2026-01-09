@@ -23,7 +23,7 @@ local function is_group(layer)
   end
   local ok2, val2 = pcall(function() return layer.layers end)
   if ok2 and type(val2) == "table" then
-    return true
+    return next(val2) ~= nil
   end
   return false
 end

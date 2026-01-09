@@ -11,8 +11,8 @@ end
 
 local p = app.params
 local outPattern = p.out or "{frame}.png"
-local fromFrame = tonumber(p.from) or 1
-local toFrame = tonumber(p.to) or #spr.frames
+local fromFrame = tonumber(p.fromFrame) or 1
+local toFrame = tonumber(p.toFrame) or #spr.frames
 local scale = tonumber(p.scale)
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 
@@ -65,7 +65,11 @@ local function is_group(layer)
   if ok and type(val) == "boolean" then
     return val
   end
-  return layer.layers ~= nil
+  local ok2, val2 = pcall(function() return layer.layers end)
+  if ok2 and type(val2) == "table" then
+    return next(val2) ~= nil
+  end
+  return false
 end
 
 local function collect_layers(parent)
@@ -87,18 +91,19 @@ if includeHidden then
   end
 end
 
+local originalFrame = app.frame
 for i = fromFrame, toFrame do
   local outputName = normalize(apply_frame_tokens(outPattern, i))
   ensure_directory(app.fs.filePath(outputName))
+  app.frame = spr.frames[i]
   local args = {
     ui = false,
-    textureFilename = outputName,
-    fromFrame = i,
-    toFrame = i,
+    filename = outputName,
   }
   if scale then args.scale = scale end
-  app.command.ExportSpriteSheet(args)
+  app.command.SaveFileCopyAs(args)
 end
+app.frame = originalFrame
 
 if includeHidden then
   for _, layer in ipairs(allLayers) do
