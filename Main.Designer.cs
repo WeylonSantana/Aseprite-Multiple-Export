@@ -33,8 +33,6 @@
             lblSearchFolder = new Label();
             btnSearchFolder = new Button();
             lstFilelist = new ListBox();
-            ctxMenuFileList = new ContextMenuStrip(components);
-            seeLayersMenuItem = new ToolStripMenuItem();
             chkKeepChanges = new CheckBox();
             grpExportTypes = new GroupBox();
             rdoSpriteSheet = new RadioButton();
@@ -68,7 +66,6 @@
             lblFrameRangeMax = new Label();
             btnResetFileListSelection = new Button();
             btnResetLayerListSelection = new Button();
-            ctxMenuFileList.SuspendLayout();
             grpExportTypes.SuspendLayout();
             grpExportOptions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) nudScale).BeginInit();
@@ -108,29 +105,15 @@
             // 
             // lstFilelist
             // 
-            lstFilelist.ContextMenuStrip = ctxMenuFileList;
             lstFilelist.FormattingEnabled = true;
             lstFilelist.ItemHeight = 15;
             lstFilelist.Location = new Point(12, 72);
             lstFilelist.Name = "lstFilelist";
-            lstFilelist.SelectionMode = SelectionMode.MultiSimple;
+            lstFilelist.SelectionMode = SelectionMode.MultiExtended;
             lstFilelist.Size = new Size(449, 199);
             lstFilelist.TabIndex = 3;
             lstFilelist.SelectedIndexChanged += LstFilelist_SelectedIndexChanged;
             lstFilelist.MouseDown += LstFilelist_MouseDown;
-            // 
-            // ctxMenuFileList
-            // 
-            ctxMenuFileList.Items.AddRange(new ToolStripItem[] { seeLayersMenuItem });
-            ctxMenuFileList.Name = "ctxMenuFileList";
-            ctxMenuFileList.Size = new Size(201, 26);
-            // 
-            // seeLayersMenuItem
-            // 
-            seeLayersMenuItem.Name = "seeLayersMenuItem";
-            seeLayersMenuItem.Size = new Size(200, 22);
-            seeLayersMenuItem.Text = "Select a file to see layers";
-            seeLayersMenuItem.Click += SeeLayersMenuItem_Click;
             // 
             // chkKeepChanges
             // 
@@ -232,7 +215,7 @@
             lstLayerList.ItemHeight = 15;
             lstLayerList.Location = new Point(483, 72);
             lstLayerList.Name = "lstLayerList";
-            lstLayerList.SelectionMode = SelectionMode.MultiSimple;
+            lstLayerList.SelectionMode = SelectionMode.MultiExtended;
             lstLayerList.Size = new Size(289, 199);
             lstLayerList.TabIndex = 10;
             toolTip.SetToolTip(lstLayerList, "List of visible layers, if you see nothing then check \"All Layers\" and try again.");
@@ -495,7 +478,6 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Aseprite Multiple Export";
             Load += Main_Load;
-            ctxMenuFileList.ResumeLayout(false);
             grpExportTypes.ResumeLayout(false);
             grpExportTypes.PerformLayout();
             grpExportOptions.ResumeLayout(false);
@@ -532,8 +514,6 @@
         private ListBox lstLayerList;
         private Label lblFileList;
         private Label lblLayerList;
-        private ContextMenuStrip ctxMenuFileList;
-        private ToolStripMenuItem seeLayersMenuItem;
         private ListBox lstDebug;
         private Label lblDebug;
         private Button btnResetOutput;

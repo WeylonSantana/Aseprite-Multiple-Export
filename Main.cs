@@ -24,6 +24,8 @@ public partial class Main : Form
     private bool _isLoading = false;
     private string _lastSelectedItem = string.Empty;
     private string _selectedLayerFile = string.Empty;
+    private int _layerLoadToken = 0;
+    private CancellationTokenSource? _layerLoadCts;
 
     public Main()
     {
@@ -211,12 +213,20 @@ public partial class Main : Form
     {
         if (_layers.Count == 0 && EveryLayer)
         {
-            SeeLayersMenuItem_Click(null, null);
-            foreach (string l in lstLayerList.Items)
+            string fileForLayers = _selectedLayerFile;
+            if (string.IsNullOrEmpty(fileForLayers))
             {
-                _layers.Add(l);
+                if (_files.Count == 1)
+                    fileForLayers = _files[0];
+                else
+                {
+                    _ = MessageBox.Show("Please select a single file to export layers from.", "Error - No File Selected!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
 
+            List<string> lines = LoadLayerLines(fileForLayers, AllLayers, CancellationToken.None);
+            _layers.AddRange(lines);
             lstLayerList.Items.Clear();
         }
 
@@ -358,11 +368,6 @@ public partial class Main : Form
         if (index != ListBox.NoMatches)
         {
             _lastSelectedItem = lstFilelist.Items[index].ToString() ?? string.Empty;
-            seeLayersMenuItem.Text = $"See Layers of {_lastSelectedItem}";
-        }
-        else
-        {
-            seeLayersMenuItem.Text = "Select a file to see layers";
         }
     }
 
@@ -373,37 +378,78 @@ public partial class Main : Form
         {
             if (item.ToString() != default) _files.Add(item.ToString()!);
         }
+
+        if (lstFilelist.SelectedItems.Count == 1)
+        {
+            string file = lstFilelist.SelectedItems[0]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(file))
+                QueueLayerLoad(file);
+        }
+        else
+        {
+            Interlocked.Increment(ref _layerLoadToken);
+            _layerLoadCts?.Cancel();
+            lstLayerList.Items.Clear();
+            _selectedLayerFile = string.Empty;
+            SetLayerLoadingState(false);
+        }
     }
 
-    private void SeeLayersMenuItem_Click(object? sender, EventArgs? e)
+    private void QueueLayerLoad(string file)
     {
-        if (string.IsNullOrEmpty(_lastSelectedItem))
+        if (string.IsNullOrEmpty(file))
             return;
 
-        //lets create only the json file for we see the layers
-        lstDebug.Items.Insert(0, $"Getting layers of {_lastSelectedItem}...");
-        string outputName = _lastSelectedItem.Replace(Path.GetExtension(_lastSelectedItem), ".json");
-        string finalCommand = $"-b --list-layers";
-        if (AllLayers) finalCommand += " --all-layers ";
-        finalCommand += $" \"{_lastSelectedItem}\" --data \"{outputName}\" --format json-array";
-        lstDebug.Items.Insert(0, "Generating json file...");
-        _ = ProcessCommand(finalCommand);
+        _layerLoadCts?.Cancel();
+        _layerLoadCts?.Dispose();
+        _layerLoadCts = new CancellationTokenSource();
 
-        lstDebug.Items.Insert(0, "Json file generated successfully.");
-        string fileData = File.ReadAllText(Path.Combine(FolderPath, outputName));
-        AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>()!;
-        // remove file
-        File.Delete(Path.Combine(FolderPath, outputName));
-        lstDebug.Items.Insert(0, "Json file deleted successfully.");
-
-        List<AsepriteLayer> layers = json.meta.layers;
-        List<LayerNode> nodes = Utilities.BuildLayerTree(layers);
-        List<string> lines = Utilities.FormatLayerTree(nodes);
-        lstDebug.Items.Insert(0, "Layers obtained successfully.");
+        int token = Interlocked.Increment(ref _layerLoadToken);
         lstLayerList.Items.Clear();
-        lstLayerList.Items.AddRange(lines.ToArray());
-        _selectedLayerFile = _lastSelectedItem;
-        lstDebug.Items.Insert(0, "Layers loaded successfully.");
+        SetLayerLoadingState(true);
+        lstDebug.Items.Insert(0, $"Loading layers of {file}...");
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                List<string> lines = LoadLayerLines(file, AllLayers, _layerLoadCts.Token);
+                return (Lines: lines, Error: (Exception?)null);
+            }
+            catch (Exception ex)
+            {
+                return (Lines: new List<string>(), Error: ex);
+            }
+        }).ContinueWith(task =>
+        {
+            if (token != _layerLoadToken)
+                return;
+
+            if (task.Result.Error != null)
+            {
+                if (task.Result.Error is OperationCanceledException)
+                {
+                    lstDebug.Items.Insert(0, "Layer loading canceled.");
+                }
+                else
+                {
+                    lstDebug.Items.Insert(0, $"Failed to load layers: {task.Result.Error.Message}");
+                }
+
+                SetLayerLoadingState(false);
+                return;
+            }
+
+            lstLayerList.Items.Clear();
+            if (lstFilelist.SelectedItems.Count == 1 &&
+                string.Equals(lstFilelist.SelectedItems[0]?.ToString(), file, StringComparison.Ordinal))
+            {
+                lstLayerList.Items.AddRange(task.Result.Lines.ToArray());
+                _selectedLayerFile = file;
+            }
+            lstDebug.Items.Insert(0, "Layers loaded successfully.");
+            SetLayerLoadingState(false);
+        }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
     private void LstLayerList_SelectedIndexChanged(object sender, EventArgs e)
@@ -431,4 +477,63 @@ public partial class Main : Form
     private void BtnResetFileListSelection_Click(object sender, EventArgs e) => lstFilelist.SelectedItems.Clear();
 
     private void BtnResetLayerListSelection_Click(object sender, EventArgs e) => lstLayerList.SelectedItems.Clear();
+
+    private List<string> LoadLayerLines(string file, bool includeHidden, CancellationToken cancellationToken)
+    {
+        string outputName = file.Replace(Path.GetExtension(file), ".layers.json");
+        string outputPath = Path.Combine(FolderPath, outputName);
+        string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", "list_layers.lua");
+        string includeHiddenValue = includeHidden ? "true" : "false";
+
+        string finalCommand = $"-b \"{file}\" --script-param out=\"{outputPath.Replace("\\", "/")}\"";
+        finalCommand += $" --script-param includeHidden={includeHiddenValue}";
+        finalCommand += $" --script \"{scriptPath.Replace("\\", "/")}\"";
+        _ = ProcessCommandCancelable(finalCommand, cancellationToken);
+
+        if (!File.Exists(outputPath))
+            throw new FileNotFoundException("Layer list file not found.", outputPath);
+
+        string fileData = File.ReadAllText(outputPath);
+        AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>()!;
+        File.Delete(outputPath);
+
+        List<AsepriteLayer> layers = json.meta.layers;
+        List<LayerNode> nodes = Utilities.BuildLayerTree(layers);
+        return Utilities.FormatLayerTree(nodes);
+    }
+
+    private void SetLayerLoadingState(bool isLoading)
+    {
+        lblLayerList.Text = isLoading ? "Layer List (Loading...)" : "Layer List:";
+        lstLayerList.Enabled = !isLoading;
+    }
+
+    private string ProcessCommandCancelable(string command, CancellationToken cancellationToken)
+    {
+        using Process process = new();
+        process.StartInfo.FileName = "Aseprite.exe";
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.WorkingDirectory = FolderPath;
+        process.StartInfo.Arguments = command;
+        process.StartInfo.RedirectStandardOutput = true;
+
+        _ = process.Start();
+        using CancellationTokenRegistration registration = cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(true);
+            }
+            catch
+            {
+                // Best effort cancellation.
+            }
+        });
+
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        cancellationToken.ThrowIfCancellationRequested();
+        return output;
+    }
 }
