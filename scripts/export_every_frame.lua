@@ -11,8 +11,25 @@ end
 
 local p = app.params
 local outPattern = p.out or "{frame}.png"
-local fromFrame = tonumber(p.fromFrame) or 1
-local toFrame = tonumber(p.toFrame) or #spr.frames
+local logPath = p.logPath or p.logpath or "output.txt"
+local function parse_frame_range(value)
+  if not value or value == "" then
+    return nil, nil
+  end
+  local a, b = string.match(value, "^%s*(%d+)%s*,%s*(%d+)%s*$")
+  if a and b then
+    return tonumber(a), tonumber(b)
+  end
+  return nil, nil
+end
+
+local fromFrame = tonumber(p.fromFrame or p.fromframe or p.from) or 1
+local toFrame = tonumber(p.toFrame or p.toframe or p.to) or #spr.frames
+local rangeFrom, rangeTo = parse_frame_range(p.frameRange or p.framerange)
+if rangeFrom and rangeTo then
+  fromFrame = rangeFrom
+  toFrame = rangeTo
+end
 local scale = tonumber(p.scale)
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 
@@ -48,6 +65,23 @@ local function ensure_directory(path)
     end
   end
 end
+
+local function log(message)
+  local path = normalize(logPath)
+  ensure_directory(app.fs.filePath(path))
+  local f = io.open(path, "a")
+  if f then
+    f:write(message, "\n")
+    f:close()
+  end
+end
+
+log("export_every_frame.lua start")
+log("out=" .. tostring(outPattern))
+log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
+log("scale=" .. tostring(scale))
+log("includeHidden=" .. tostring(includeHidden))
+log("logPath=" .. tostring(logPath))
 
 local function apply_frame_tokens(pattern, frameIndex)
   local value = frameIndex
@@ -91,22 +125,26 @@ if includeHidden then
   end
 end
 
-local originalFrame = app.frame
-for i = fromFrame, toFrame do
-  local outputName = normalize(apply_frame_tokens(outPattern, i))
-  ensure_directory(app.fs.filePath(outputName))
-  app.frame = spr.frames[i]
-  local args = {
-    ui = false,
-    filename = outputName,
-  }
-  if scale then args.scale = scale end
-  app.command.SaveFileCopyAs(args)
+local outputName = normalize(outPattern)
+ensure_directory(app.fs.filePath(outputName))
+log("batch output=" .. tostring(outputName))
+log("fromFrame=" .. tostring(fromFrame) .. " toFrame=" .. tostring(toFrame))
+local args = {
+  ui = false,
+  filename = outputName,
+  fromFrame = fromFrame,
+  toFrame = toFrame,
+}
+if scale then args.scale = scale end
+local okSave, errSave = pcall(function() app.command.SaveFileCopyAs(args) end)
+if not okSave then
+  log("save error=" .. tostring(errSave))
 end
-app.frame = originalFrame
 
 if includeHidden then
   for _, layer in ipairs(allLayers) do
     layer.isVisible = previousVisibility[layer]
   end
 end
+
+log("export_every_frame.lua done")

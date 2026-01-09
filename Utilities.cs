@@ -4,18 +4,26 @@ public static class Utilities
 {
     public static List<LayerNode> BuildLayerTree(List<AsepriteLayer> layers)
     {
-        Dictionary<Guid, LayerNode> layerMap = [];
+        Dictionary<string, LayerNode> layerMap = [];
         List<LayerNode> rootNodes = [];
 
         foreach (AsepriteLayer layer in layers)
         {
-            LayerNode node = new() { Name = layer.name, FullPath = layer.name, Children = [] };
-            layerMap.Add(node.Id, node);
+            string? parentPath = layer.group;
+            if (!string.IsNullOrEmpty(parentPath))
+                parentPath = parentPath.Replace("\\", "/");
+
+            string fullPath = parentPath != default
+                ? $"{parentPath}/{layer.name}"
+                : layer.name;
+
+            LayerNode node = new() { Name = layer.name, FullPath = fullPath, Children = [] };
+            layerMap[fullPath] = node;
 
             if (layer.group != default)
             {
-                LayerNode? parent = layerMap.Values.FirstOrDefault(x => x.Name == layer.group);
-                if (parent != default)
+                string lookup = parentPath ?? layer.group!;
+                if (layerMap.TryGetValue(lookup, out LayerNode? parent))
                     parent.Children.Add(node);
                 else
                     rootNodes.Add(node);
@@ -43,7 +51,7 @@ public static class Utilities
 
     private static void TransverseLayerTree(ref List<string> lines, LayerNode node, string parentPath)
     {
-        string currentPath = parentPath.Length > 0 ? Path.Combine(parentPath, node.Name) : node.Name;
+        string currentPath = parentPath.Length > 0 ? $"{parentPath}/{node.Name}" : node.Name;
 
         if (node.Children.Count == 0)
         {

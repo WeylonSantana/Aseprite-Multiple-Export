@@ -26,10 +26,12 @@ public partial class Main : Form
     private int _layerLoadToken = 0;
     private CancellationTokenSource? _layerLoadCts;
     private bool _suppressFileSelectionChanged = false;
+    private CancellationTokenSource? _exportCts;
 
     public Main()
     {
         InitializeComponent();
+        ClearLogFiles();
         lstDebug.Items.Insert(0, "Starting Aseprite Multiple Exporter...");
         string output = ProcessCommand("--version");
 
@@ -52,8 +54,16 @@ public partial class Main : Form
         process.StartInfo.WorkingDirectory = FolderPath;
         process.StartInfo.Arguments = command;
         process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.UseShellExecute = false;
         _ = process.Start();
-        string output = process.StandardOutput.ReadToEnd();
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        process.WaitForExit();
+        string output = outputTask.Result;
+        string error = errorTask.Result;
+        if (!string.IsNullOrEmpty(error))
+            output = $"{output}{Environment.NewLine}{error}";
         return output;
     }
 
@@ -161,7 +171,15 @@ public partial class Main : Form
 
     private async void BtnExport_Click(object sender, EventArgs e)
     {
+        if (_exportCts != null)
+        {
+            _exportCts.Cancel();
+            SafeLog("Canceling export...");
+            return;
+        }
+
         UpdateForm();
+        ClearLogFiles();
         lstDebug.Items.Insert(0, "Exporting files...");
         if (_files.Count == 0)
         {
@@ -185,27 +203,34 @@ public partial class Main : Form
             return;
         }
 
+        _exportCts = new CancellationTokenSource();
         SetExportingState(true);
         try
         {
             IReadOnlyCollection<string> selectedLayers = _layers.ToList();
             List<string> selectedFiles = _files.ToList();
             string selectedLayerFile = _selectedLayerFile;
+            CancellationToken token = _exportCts.Token;
 
             await Task.Run(() =>
             {
+                token.ThrowIfCancellationRequested();
                 if (selectedLayers.Count > 0)
                 {
-                    ExportFile(selectedLayerFile, selectedLayers);
+                    ExportFile(selectedLayerFile, selectedLayers, token);
                 }
                 else
                 {
                     foreach (string file in selectedFiles)
                     {
-                        ExportFile(file, []);
+                        token.ThrowIfCancellationRequested();
+                        ExportFile(file, [], token);
                     }
                 }
-            });
+            }, token);
+
+            if (token.IsCancellationRequested)
+                throw new OperationCanceledException(token);
 
             lstDebug.Items.Insert(0, $"Export completed successfully for type {ExportType}.");
             _ = MessageBox.Show(
@@ -215,13 +240,19 @@ public partial class Main : Form
                 MessageBoxIcon.Information
             );
         }
+        catch (OperationCanceledException)
+        {
+            SafeLog("Export canceled.");
+        }
         finally
         {
             SetExportingState(false);
+            _exportCts.Dispose();
+            _exportCts = null;
         }
     }
 
-    private void ExportFile(string file, IReadOnlyCollection<string> layers)
+    private void ExportFile(string file, IReadOnlyCollection<string> layers, CancellationToken token)
     {
         if (string.IsNullOrEmpty(file)) return;
 
@@ -243,10 +274,13 @@ public partial class Main : Form
             scriptName = hasLayers ? "export_selected_layers.lua" : "export_sprite_sheet.lua";
         }
 
+        string logPath = EnsureLogFile(GetScriptLogName(scriptName));
+
         Dictionary<string, string> parameters = [];
         string baseName = Path.GetFileNameWithoutExtension(file);
         string scaleFolder = $"{Scale}x";
         bool isSheet = ExportType == ExportType.SpriteSheet;
+        string frameRangeValue = string.Empty;
 
         string outPattern;
         if (!string.IsNullOrEmpty(CustomOutputName))
@@ -287,7 +321,7 @@ public partial class Main : Form
 
         if (EveryLayer || hasLayers)
         {
-            string layerValue = string.Join("|", layers.Select(layer => layer.Replace("\\", "/")));
+            string layerValue = string.Join("|", layers.Select(layer => layer.Trim().Replace("\\", "/")));
             if (!string.IsNullOrEmpty(layerValue))
                 parameters["layers"] = layerValue;
         }
@@ -301,6 +335,8 @@ public partial class Main : Form
             int to = Math.Max(StartFrame, EndFrame);
             parameters["fromFrame"] = from.ToString();
             parameters["toFrame"] = to.ToString();
+            parameters["frameRange"] = $"{from},{to}";
+            frameRangeValue = $"{from},{to}";
             if (StartFrame > EndFrame)
                 SafeLog("Frame range values were inverted. Using the corrected range.");
         }
@@ -335,17 +371,83 @@ public partial class Main : Form
             parameters["scale"] = Scale.ToString();
         }
 
+        if (isSheet && FrameRangeEnabled)
+        {
+            string cliCommand = BuildSpriteSheetCliCommand(file, layers, outPattern, frameRangeValue);
+            _ = ProcessCommandCancelable(cliCommand, token);
+            SafeLog($"Exported {file}.");
+            return;
+        }
+
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
-        List<string> args = [$"-b \"{file}\""];
+        string normalizedLogPath = logPath.Replace("\\", "/");
+        List<string> args = ["-b"];
+        if (!string.IsNullOrEmpty(frameRangeValue))
+            args.Add($"--frame-range {frameRangeValue}");
+        args.Add($"\"{file}\"");
 
         foreach ((string key, string value) in parameters)
             if (!string.IsNullOrEmpty(value)) args.Add($"--script-param {key}=\"{value}\"");
 
+        args.Add($"--script-param logPath=\"{normalizedLogPath}\"");
         args.Add($"--script \"{scriptPath}\"");
-        string command = string.Join(" ", args);
-        _ = ProcessCommand(command);
+        string commandLine = string.Join(" ", args);
+        _ = ProcessCommandCancelable(commandLine, token);
 
         SafeLog($"Exported {file}.");
+    }
+
+    private string BuildSpriteSheetCliCommand(string file, IReadOnlyCollection<string> layers, string outPattern, string frameRangeValue)
+    {
+        List<string> args = ["-b"];
+
+        if (!string.IsNullOrEmpty(frameRangeValue))
+            args.Add($"--frame-range {frameRangeValue}");
+
+        if (AllLayers)
+            args.Add("--all-layers");
+
+        string sheetType = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
+        if (SheetExportType == SheetExportType.Rows)
+        {
+            sheetType = "columns";
+            args.Add($"--sheet-rows {SheetSplitCount}");
+        }
+        else if (SheetExportType == SheetExportType.Columns)
+        {
+            sheetType = "rows";
+            args.Add($"--sheet-columns {SheetSplitCount}");
+        }
+
+        args.Add($"--sheet-type {sheetType}");
+
+        if (EveryLayer && layers.Count == 0)
+        {
+            args.Add("--split-layers");
+        }
+        else if (layers.Count > 0)
+        {
+            foreach (string layer in layers)
+                args.Add($"--layer \"{layer.Replace("\\", "/")}\"");
+        }
+
+        string fileArg = $"\"{file}\"";
+        args.Add(fileArg);
+
+        args.Add($"--scale {Scale}");
+        args.Add("--sheet");
+        args.Add($"\"{outPattern.Replace("\\", "/")}\"");
+
+        if (ExportJson)
+        {
+            string dataPattern = Path.ChangeExtension(outPattern, ".json").Replace("\\", "/");
+            args.Add("--list-layers");
+            args.Add("--list-tags");
+            args.Add($"--data \"{dataPattern}\"");
+            args.Add("--format json-array");
+        }
+
+        return string.Join(" ", args);
     }
 
     private void BasicControl_Changed(object sender, EventArgs e) => UpdateForm();
@@ -449,25 +551,7 @@ public partial class Main : Form
             if(item.ToString() != default) _layers.Add(item.ToString()!);
         }
 
-        if (_layers.Count == 0)
-        {
-            lstFilelist.Enabled = true;
-        }
-        else
-        {
-            _suppressFileSelectionChanged = true;
-            try
-            {
-                lstFilelist.ClearSelected();
-                int index = lstFilelist.Items.IndexOf(_selectedLayerFile);
-                if (index >= 0) lstFilelist.SelectedIndex = index;
-            }
-            finally
-            {
-                _suppressFileSelectionChanged = false;
-            }
-            lstFilelist.Enabled = false;
-        }
+        lstFilelist.Enabled = _layers.Count == 0;
     }
 
     private void BtnResetOutput_Click(object sender, EventArgs e) => lstDebug.Items.Clear();
@@ -478,6 +562,7 @@ public partial class Main : Form
 
     private List<string> LoadLayerLines(string file, bool includeHidden, CancellationToken cancellationToken)
     {
+        string logPath = EnsureLogFile("list_layers.log.txt");
         string outputName = file.Replace(Path.GetExtension(file), ".layers.json");
         string outputPath = Path.Combine(FolderPath, outputName);
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", "list_layers.lua");
@@ -485,6 +570,7 @@ public partial class Main : Form
 
         string finalCommand = $"-b \"{file}\" --script-param out=\"{outputPath.Replace("\\", "/")}\"";
         finalCommand += $" --script-param includeHidden={includeHiddenValue}";
+        finalCommand += $" --script-param logPath=\"{logPath.Replace("\\", "/")}\"";
         finalCommand += $" --script \"{scriptPath.Replace("\\", "/")}\"";
         _ = ProcessCommandCancelable(finalCommand, cancellationToken);
 
@@ -505,10 +591,63 @@ public partial class Main : Form
         lstLayerList.Enabled = !isLoading;
     }
 
+    private string EnsureLogFile(string fileName)
+    {
+        string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            File.AppendAllText(logPath, $"--- {DateTime.Now:yyyy-MM-dd HH:mm:ss} ---{Environment.NewLine}");
+        }
+        catch
+        {
+            // Best effort logging.
+        }
+
+        return logPath;
+    }
+
+    private static string GetScriptLogName(string scriptName)
+    {
+        return scriptName switch
+        {
+            "export_every_frame.lua" => "export_every_frame.log.txt",
+            "export_every_layer_frames.lua" => "export_every_layer_frames.log.txt",
+            "export_selected_layers.lua" => "export_selected_layers.log.txt",
+            "export_sprite_sheet.lua" => "export_sprite_sheet.log.txt",
+            "export_sheet_per_layer.lua" => "export_sheet_per_layer.log.txt",
+            _ => "export.log.txt",
+        };
+    }
+
+    private void ClearLogFiles()
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string[] logFiles =
+        [
+            "export_every_frame.log.txt",
+            "export_every_layer_frames.log.txt",
+            "export_selected_layers.log.txt",
+            "export_sprite_sheet.log.txt",
+            "export_sheet_per_layer.log.txt",
+            "export.log.txt",
+            "list_layers.log.txt",
+        ];
+
+        foreach (string name in logFiles)
+        {
+            string path = Path.Combine(baseDir, name);
+            if (File.Exists(path))
+            {
+                try { File.Delete(path); } catch { }
+            }
+        }
+    }
+
     private void SetExportingState(bool isExporting)
     {
-        btnExport.Enabled = !isExporting;
-        btnExport.Text = isExporting ? "Exporting..." : "Export!";
+        btnExport.Enabled = true;
+        btnExport.Text = isExporting ? "Cancel" : "Export!";
 
         lstFilelist.Enabled = !isExporting;
         lstLayerList.Enabled = !isExporting && lblLayerList.Text != "Layer List (Loading...)";
@@ -553,8 +692,12 @@ public partial class Main : Form
         process.StartInfo.WorkingDirectory = FolderPath;
         process.StartInfo.Arguments = command;
         process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.UseShellExecute = false;
 
         _ = process.Start();
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
         using CancellationTokenRegistration registration = cancellationToken.Register(() =>
         {
             try
@@ -568,9 +711,11 @@ public partial class Main : Form
             }
         });
 
-        string output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
-        cancellationToken.ThrowIfCancellationRequested();
+        string output = outputTask.Result;
+        string error = errorTask.Result;
+        if (!string.IsNullOrEmpty(error))
+            output = $"{output}{Environment.NewLine}{error}";
         return output;
     }
 }
