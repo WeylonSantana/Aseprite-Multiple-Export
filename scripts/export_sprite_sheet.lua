@@ -1,4 +1,4 @@
--- Export a single spritesheet.
+-- Export a single spritesheet with Resize & Clone support.
 -- Usage (PowerShell):
 --   Aseprite.exe -b "file.aseprite" --script-param out='export/sheet.png' ^
 --     --script-param type=packed --script "scripts/export_sprite_sheet.lua"
@@ -15,7 +15,7 @@ local dataName = p.data or ""
 local sheetType = p.type or "packed"
 local columns = tonumber(p.columns)
 local rows = tonumber(p.rows)
-local scale = tonumber(p.scale)
+local scale = tonumber(p.scale) or 1 -- Valor padrão 1 se não informado
 local includeHidden = p.includeHidden == "1" or p.includeHidden == "true"
 
 local sep = app.fs.pathSeparator
@@ -27,56 +27,47 @@ local function normalize(path)
 end
 
 local function ensure_directory(path)
-  if not path or path == "" then
-    return
-  end
-
+  if not path or path == "" then return end
   local built = ""
   for part in string.gmatch(path, "[^" .. sep .. "]+") do
-    if built == "" then
-      built = part
-    else
-      built = built .. sep .. part
-    end
-
+    if built == "" then built = part else built = built .. sep .. part end
     if not app.fs.isDirectory(built) then
       pcall(app.fs.makeDirectory, built)
     end
   end
 end
 
-local allLayers = {}
-local function is_group(layer)
-  local ok, val = pcall(function() return layer.isGroup end)
-  if ok and type(val) == "boolean" then
-    return val
-  end
-  local ok2, val2 = pcall(function() return layer.layers end)
-  if ok2 and type(val2) == "table" then
-    return next(val2) ~= nil
-  end
-  return false
-end
-
-local function collect_layers(parent)
-  for _, layer in ipairs(parent.layers) do
-    table.insert(allLayers, layer)
-    if is_group(layer) then
-      collect_layers(layer)
+-- Função auxiliar para visibilidade recursiva
+local function show_all_layers(layers)
+  for _, layer in ipairs(layers) do
+    layer.isVisible = true
+    if layer.isGroup then
+      show_all_layers(layer.layers)
     end
   end
 end
 
-collect_layers(spr)
+-- =======================================================
+-- LÓGICA PRINCIPAL (CLONE -> MODIFY -> EXPORT -> DELETE)
+-- =======================================================
 
-local previousVisibility = {}
+-- 1. Cria um clone para não afetar o sprite original
+local exportSpr = Sprite(spr)
+app.activeSprite = exportSpr -- Foca no clone para o comando funcionar nele
+
+-- 2. Aplica visibilidade no clone se solicitado
 if includeHidden then
-  for _, layer in ipairs(allLayers) do
-    previousVisibility[layer] = layer.isVisible
-    layer.isVisible = true
-  end
+  show_all_layers(exportSpr.layers)
 end
 
+-- 3. Redimensiona o sprite manualmente (Resolve o bug de scaling da API)
+if scale and scale ~= 1 then
+  local newWidth = math.floor(exportSpr.width * scale)
+  local newHeight = math.floor(exportSpr.height * scale)
+  exportSpr:resize(newWidth, newHeight)
+end
+
+-- 4. Prepara caminhos
 outName = normalize(outName)
 ensure_directory(app.fs.filePath(outName))
 
@@ -88,7 +79,7 @@ local args = {
 
 if columns then args.columns = columns end
 if rows then args.rows = rows end
-if scale then args.scale = scale end
+
 if dataName ~= "" then
   dataName = normalize(dataName)
   ensure_directory(app.fs.filePath(dataName))
@@ -98,10 +89,9 @@ if dataName ~= "" then
   args.dataFormat = "json-array"
 end
 
+-- 5. Exporta
 app.command.ExportSpriteSheet(args)
 
-if includeHidden then
-  for _, layer in ipairs(allLayers) do
-    layer.isVisible = previousVisibility[layer]
-  end
-end
+-- 6. Limpeza
+exportSpr:close()       -- Fecha o clone sem salvar
+app.activeSprite = spr  -- Devolve o foco ao sprite original
