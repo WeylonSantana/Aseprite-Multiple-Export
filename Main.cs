@@ -66,6 +66,41 @@ public partial class Main : Form
         return output;
     }
 
+    private string ProcessCommandCancelable(string command, CancellationToken cancellationToken)
+    {
+        using Process process = new();
+        process.StartInfo.FileName = "Aseprite.exe";
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.WorkingDirectory = FolderPath;
+        process.StartInfo.Arguments = command;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.UseShellExecute = false;
+
+        _ = process.Start();
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        using CancellationTokenRegistration registration = cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(true);
+            }
+            catch
+            {
+                // Best effort cancellation.
+            }
+        });
+
+        process.WaitForExit();
+        string output = outputTask.Result;
+        string error = errorTask.Result;
+        if (!string.IsNullOrEmpty(error))
+            output = $"{output}{Environment.NewLine}{error}";
+        return output;
+    }
+
     private void Main_Load(object sender, EventArgs e)
     {
         lstDebug.Items.Insert(0, "Loading settings...");
@@ -626,40 +661,5 @@ public partial class Main : Form
         {
             lstDebug.Items.Insert(0, message);
         }
-    }
-
-    private string ProcessCommandCancelable(string command, CancellationToken cancellationToken)
-    {
-        using Process process = new();
-        process.StartInfo.FileName = "Aseprite.exe";
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.WorkingDirectory = FolderPath;
-        process.StartInfo.Arguments = command;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.UseShellExecute = false;
-
-        _ = process.Start();
-        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-        Task<string> errorTask = process.StandardError.ReadToEndAsync();
-        using CancellationTokenRegistration registration = cancellationToken.Register(() =>
-        {
-            try
-            {
-                if (!process.HasExited)
-                    process.Kill(true);
-            }
-            catch
-            {
-                // Best effort cancellation.
-            }
-        });
-
-        process.WaitForExit();
-        string output = outputTask.Result;
-        string error = errorTask.Result;
-        if (!string.IsNullOrEmpty(error))
-            output = $"{output}{Environment.NewLine}{error}";
-        return output;
     }
 }
