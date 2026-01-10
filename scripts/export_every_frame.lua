@@ -109,7 +109,8 @@ local function run_script()
         filename = baseOutput,
         filenameFormat = baseOutput,
         fromFrame = 1,
-        toFrame = finalFrames
+        toFrame = finalFrames,
+        ignoreEmpty = true
       }
 
       print("[Lua] Saving frames using filenameFormat...")
