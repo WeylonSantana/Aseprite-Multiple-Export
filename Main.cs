@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -29,6 +28,7 @@ public partial class Main : Form
     private int _layerLoadToken = 0;
     private CancellationTokenSource? _layerLoadCts;
     private bool _suppressFileSelectionChanged = false;
+    private bool _hasManualLayerSelection = false;
     private CancellationTokenSource? _exportCts;
 
     public Main()
@@ -159,6 +159,11 @@ public partial class Main : Form
 
         ExportType = rdoEveryFrame.Checked ? ExportType.EveryFrame : ExportType.SpriteSheet;
 
+        if (AllLayers != chkAllLayers.Checked && !_isLoading)
+        {
+            // Reload layers if AllLayers option changed
+            if (!string.IsNullOrEmpty(_selectedLayerFile)) QueueLayerLoad(_selectedLayerFile);
+        }
         AllLayers = chkAllLayers.Checked;
         EveryLayer = chkEveryLayer.Checked;
         Scale = (int)nudScale.Value;
@@ -286,7 +291,7 @@ public partial class Main : Form
     {
         if (string.IsNullOrEmpty(file)) return;
 
-        bool hasSelectedLayers = layers.Count > 0;
+        bool hasSelectedLayers = _hasManualLayerSelection && layers.Count > 0;
         string scriptName;
         bool isEveryFrame = ExportType == ExportType.EveryFrame;
         Dictionary<string, string> parameters = [];
@@ -296,9 +301,7 @@ public partial class Main : Form
 
         if (isEveryFrame)
         {
-            if (!hasSelectedLayers && !EveryLayer) scriptName = "export_every_frame.lua";
-            else if (!hasSelectedLayers && EveryLayer) scriptName = "export_every_frame_every_layer.lua";
-            else scriptName = "export_every_frame_selected_layers.lua";
+            scriptName = "export_every_frame.lua";
 
             if (string.IsNullOrEmpty(CustomOutputName))
             {
@@ -355,6 +358,7 @@ public partial class Main : Form
 
         parameters["out"] = outPattern.Replace("\\", "/");
         parameters["scale"] = Scale.ToString();
+        parameters["everyLayer"] = EveryLayer ? "true" : "false";
 
         if (FrameRangeEnabled)
         {
@@ -363,7 +367,7 @@ public partial class Main : Form
             if (StartFrame > EndFrame) SafeLog("Frame range values were inverted. Using the corrected range.");
         }
 
-        if (EveryLayer || hasSelectedLayers)
+        if (EveryLayer || layers.Count > 0)
         {
             string layerValue = string.Join("|", layers.Select(layer => layer.Trim().Replace("\\", "/")));
             if (!string.IsNullOrEmpty(layerValue)) parameters["layers"] = layerValue;
@@ -385,7 +389,6 @@ public partial class Main : Form
 
         SafeLog($"Exported {file}.");
     }
-
 
     private void BasicControl_Changed(object sender, EventArgs e) => UpdateForm();
 
@@ -423,6 +426,8 @@ public partial class Main : Form
             _layerLoadCts?.Cancel();
             lstLayerList.Items.Clear();
             _selectedLayerFile = string.Empty;
+            _layers.Clear();
+            _hasManualLayerSelection = false;
             SetLayerLoadingState(false);
         }
     }
@@ -444,7 +449,7 @@ public partial class Main : Form
         {
             try
             {
-                List<string> lines = LoadLayerLines(file, AllLayers, _layerLoadCts.Token);
+                List<string> lines = LoadLayerLines(file, _layerLoadCts.Token);
                 return (Lines: lines, Error: (Exception?)null);
             }
             catch (Exception ex)
@@ -476,6 +481,8 @@ public partial class Main : Form
             {
                 lstLayerList.Items.AddRange([.. task.Result.Lines]);
                 _selectedLayerFile = file;
+                if (!_hasManualLayerSelection)
+                    SetDefaultLayersFromList();
             }
             lstDebug.Items.Insert(0, "Layers loaded successfully.");
             SetLayerLoadingState(false);
@@ -490,7 +497,10 @@ public partial class Main : Form
             if(item.ToString() != default) _layers.Add(item.ToString()!);
         }
 
-        lstFilelist.Enabled = _layers.Count == 0;
+        _hasManualLayerSelection = lstLayerList.SelectedItems.Count > 0;
+        if (!_hasManualLayerSelection)
+            SetDefaultLayersFromList();
+        lstFilelist.Enabled = !_hasManualLayerSelection;
     }
 
     private void BtnResetOutput_Click(object sender, EventArgs e) => lstDebug.Items.Clear();
@@ -504,27 +514,37 @@ public partial class Main : Form
 
     private void BtnResetLayerListSelection_Click(object sender, EventArgs e) => lstLayerList.SelectedItems.Clear();
 
-    private List<string> LoadLayerLines(string file, bool includeHidden, CancellationToken cancellationToken)
+    private void SetDefaultLayersFromList()
     {
-        string outputName = file.Replace(Path.GetExtension(file), ".layers.json");
-        string outputPath = Path.Combine(FolderPath, outputName);
+        _layers.Clear();
+        foreach (object? item in lstLayerList.Items)
+        {
+            if (item?.ToString() != default)
+                _layers.Add(item.ToString()!);
+        }
+    }
+
+    private List<string> LoadLayerLines(string file, CancellationToken cancellationToken)
+    {
         string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", "list_layers.lua");
-        string includeHiddenValue = includeHidden ? "true" : "false";
+        string includeHiddenValue = AllLayers ? "true" : "false";
 
-        string finalCommand = $"-b \"{file}\" --script-param out=\"{outputPath.Replace("\\", "/")}\"";
-        finalCommand += $" --script-param includeHidden={includeHiddenValue}";
-        finalCommand += $" --script \"{scriptPath.Replace("\\", "/")}\"";
-        _ = ProcessCommandCancelable(finalCommand, cancellationToken);
+        string command = $"-b \"{file}\" --script-param includeHidden={includeHiddenValue}";
+        command += $" --script \"{scriptPath.Replace("\\", "/")}\"";
+        string output = ProcessCommand(command);
 
-        if (!File.Exists(outputPath)) throw new FileNotFoundException("Layer list file not found.", outputPath);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        string fileData = File.ReadAllText(outputPath);
-        AsepriteJsonFile json = JObject.Parse(fileData).ToObject<AsepriteJsonFile>()!;
-        File.Delete(outputPath);
+        List<string> lines = [];
+        foreach (string line in output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!line.StartsWith("LAYER:", StringComparison.Ordinal)) continue;
+            string value = line["LAYER:".Length..].Trim();
+            if (!string.IsNullOrEmpty(value)) lines.Add(value);
+        }
 
-        List<AsepriteLayer> layers = json.meta.layers;
-        List<LayerNode> nodes = Utilities.BuildLayerTree(layers);
-        return Utilities.FormatLayerTree(nodes);
+        if (lines.Count == 0) throw new InvalidOperationException("Layer list output was empty.");
+        return lines;
     }
 
     private void SetLayerLoadingState(bool isLoading)
