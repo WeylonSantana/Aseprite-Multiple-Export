@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using Newtonsoft.Json;
 
 namespace Aseprite_Multiple_Export;
 
@@ -289,6 +292,10 @@ public partial class Main : Form
                         ExportFile(file, [], token);
                     }
                 }
+
+                // Post-process exported files (resize images and update JSONs if needed)
+                token.ThrowIfCancellationRequested();
+                PostProcessExportedFiles(FolderPath, token);
             }, token);
             token.ThrowIfCancellationRequested();
 
@@ -310,6 +317,102 @@ public partial class Main : Form
             _exportCts.Dispose();
             _exportCts = null;
         }
+    }
+
+    private void PostProcessExportedFiles(string outputFolder, CancellationToken token)
+    {
+        if (Scale <= 1)
+        {
+            SafeLog("Scale is 1 or less, skipping post-processing.");
+            return;
+        }
+
+        SafeLog($"Starting post-processing with scale {Scale}x...");
+
+        // Find all PNG files in the export folder recursively
+        if (!Directory.Exists(outputFolder))
+        {
+            SafeLog($"Output folder not found: {outputFolder}");
+            return;
+        }
+
+        string[] imageFiles = Directory.GetFiles(outputFolder, "*.png", SearchOption.AllDirectories);
+        SafeLog($"Found {imageFiles.Length} images to resize.");
+
+        // Resize all images in parallel using ImageSharp with nearest neighbor
+        Parallel.ForEach(imageFiles, new ParallelOptions { CancellationToken = token }, imagePath =>
+        {
+            try
+            {
+                using (var image = SixLabors.ImageSharp.Image.Load(imagePath))
+                {
+                    int newWidth = image.Width * Scale;
+                    int newHeight = image.Height * Scale;
+                    
+                    image.Mutate(x => x.Resize(newWidth, newHeight, KnownResamplers.NearestNeighbor));
+                    image.Save(imagePath);
+                }
+                SafeLog($"Resized: {Path.GetFileName(imagePath)}");
+            }
+            catch (Exception ex)
+            {
+                SafeLog($"Error resizing {Path.GetFileName(imagePath)}: {ex.Message}");
+            }
+        });
+
+        // If spritesheet export and JSON is enabled, update JSON files
+        if (ExportType == ExportType.SpriteSheet && ExportJson)
+        {
+            string[] jsonFiles = Directory.GetFiles(outputFolder, "*.json", SearchOption.AllDirectories);
+            SafeLog($"Found {jsonFiles.Length} JSON files to update.");
+
+            Parallel.ForEach(jsonFiles, new ParallelOptions { CancellationToken = token }, jsonPath =>
+            {
+                try
+                {
+                    string jsonContent = File.ReadAllText(jsonPath);
+                    var jsonData = JsonConvert.DeserializeObject<AsepriteJsonFile>(jsonContent);
+
+                    if (jsonData != null)
+                    {
+                        // Update frame coordinates and sizes
+                        foreach (var frame in jsonData.frames)
+                        {
+                            frame.frame.x *= Scale;
+                            frame.frame.y *= Scale;
+                            frame.frame.w *= Scale;
+                            frame.frame.h *= Scale;
+
+                            frame.spriteSourceSize.x *= Scale;
+                            frame.spriteSourceSize.y *= Scale;
+                            frame.spriteSourceSize.w *= Scale;
+                            frame.spriteSourceSize.h *= Scale;
+
+                            frame.sourceSize.w *= Scale;
+                            frame.sourceSize.h *= Scale;
+                        }
+
+                        // Update meta size
+                        jsonData.meta.size.w *= Scale;
+                        jsonData.meta.size.h *= Scale;
+
+                        // Update scale value in meta
+                        jsonData.meta.scale = Scale.ToString();
+
+                        // Save updated JSON
+                        string updatedJson = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
+                        File.WriteAllText(jsonPath, updatedJson);
+                        SafeLog($"Updated JSON: {Path.GetFileName(jsonPath)}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SafeLog($"Error updating JSON {Path.GetFileName(jsonPath)}: {ex.Message}");
+                }
+            });
+        }
+
+        SafeLog("Post-processing completed.");
     }
 
     private void ExportFile(string file, List<string> layers, CancellationToken token)
@@ -376,7 +479,6 @@ public partial class Main : Form
         }
 
         parameters["out"] = outPattern.Replace("\\", "/");
-        parameters["scale"] = Scale.ToString();
         parameters["everyLayer"] = EveryLayer ? "true" : "false";
 
         if (FrameRangeEnabled)

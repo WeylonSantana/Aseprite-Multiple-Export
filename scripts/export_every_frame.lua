@@ -48,7 +48,6 @@ local function run_script()
   local outPattern = app.params.out
   local layersParam = app.params.layers or ""
   local everyLayer = app.params.everyLayer == "1" or app.params.everyLayer == "true"
-  local scale = tonumber(app.params.scale) or 1
   local includeHidden = app.params.includeHidden == "1" or app.params.includeHidden == "true"
   local fromFrameArg = tonumber(app.params.fromFrame) or 1
   local toFrameArg = tonumber(app.params.toFrame) or (spr and #spr.frames or 1)
@@ -62,7 +61,6 @@ local function run_script()
   print("[Lua] Output pattern: " .. outPattern)
   print("[Lua] Layers param: " .. tostring(layersParam))
   print("[Lua] Every layer: " .. tostring(everyLayer))
-  print("[Lua] Scale: " .. tostring(scale))
   print("[Lua] Include hidden: " .. tostring(includeHidden))
   print("[Lua] Frame range (requested): " .. tostring(fromFrameArg) .. " - " .. tostring(toFrameArg))
   print("[Lua] Layers param length: " .. tostring(#layersParam))
@@ -84,13 +82,6 @@ local function run_script()
           exportSpr:deleteFrame(exportSpr.frames[i])
         end
       end
-    end
-
-    if scale and scale ~= 1 then
-      local newW = math.floor(exportSpr.width * scale)
-      local newH = math.floor(exportSpr.height * scale)
-      print("[Lua] Resizing clone: " .. exportSpr.width .. "x" .. exportSpr.height .. " -> " .. newW .. "x" .. newH)
-      exportSpr:resize(newW, newH)
     end
 
     local finalFrames = #exportSpr.frames

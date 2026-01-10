@@ -54,7 +54,6 @@ local function run_script()
   local sheetType = app.params.type or "packed"
   local columns = tonumber(app.params.columns)
   local rows = tonumber(app.params.rows)
-  local scale = tonumber(app.params.scale) or 1
   local includeHidden = app.params.includeHidden == "1" or app.params.includeHidden == "true"
   local layersParam = app.params.layers or ""
   local everyLayer = app.params.everyLayer == "1" or app.params.everyLayer == "true"
@@ -72,7 +71,6 @@ local function run_script()
   print("[Lua] Sheet type: " .. tostring(sheetType))
   print("[Lua] Columns: " .. tostring(columns))
   print("[Lua] Rows: " .. tostring(rows))
-  print("[Lua] Scale: " .. tostring(scale))
   print("[Lua] Include hidden: " .. tostring(includeHidden))
   print("[Lua] Layers param: " .. tostring(layersParam))
   print("[Lua] Every layer: " .. tostring(everyLayer))
@@ -163,22 +161,12 @@ local function run_script()
     local baseOutput = normalize(outPattern)
     local baseData = dataPattern ~= "" and normalize(dataPattern) or ""
 
-    local function apply_resize()
-      if scale and scale ~= 1 then
-        local newW = math.floor(exportSpr.width * scale)
-        local newH = math.floor(exportSpr.height * scale)
-        print("[Lua] Resizing clone: " .. exportSpr.width .. "x" .. exportSpr.height .. " -> " .. newW .. "x" .. newH)
-        exportSpr:resize(newW, newH)
-      end
-    end
-
     if everyLayer and string.find(baseOutput, "{layer}") == nil then
       print("[Lua] WARNING: output pattern does not include {layer}; files will be overwritten.")
     end
 
     if everyLayer then
       hide_all_non_group(exportSpr)
-      apply_resize()
 
       local previousLayer = nil
       for _, item in ipairs(layersToExport) do
@@ -257,13 +245,6 @@ local function run_script()
         if drawn then
           tempSpr:newCel(tempLayer, i, frameImage, Point(0, 0))
         end
-      end
-
-      if scale and scale ~= 1 then
-        local newW = math.floor(tempSpr.width * scale)
-        local newH = math.floor(tempSpr.height * scale)
-        print("[Lua] Resizing combined sprite: " .. tempSpr.width .. "x" .. tempSpr.height .. " -> " .. newW .. "x" .. newH)
-        tempSpr:resize(newW, newH)
       end
 
       local args = {
