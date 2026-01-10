@@ -1,10 +1,13 @@
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Aseprite_Multiple_Export;
 
 public partial class Main : Form
 {
+    [DllImport("kernel32.dll")]
+    private static extern bool AllocConsole();
     private bool KeepChanges;
     private string FolderPath = null!;
     private ExportType ExportType;
@@ -30,6 +33,7 @@ public partial class Main : Form
 
     public Main()
     {
+        _ = AllocConsole();
         InitializeComponent();
         lstDebug.Items.Insert(0, "Starting Aseprite Multiple Exporter...");
         string output = ProcessCommand("--version");
@@ -70,16 +74,12 @@ public partial class Main : Form
     {
         using Process process = new();
         process.StartInfo.FileName = "Aseprite.exe";
-        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.CreateNoWindow = false;
         process.StartInfo.WorkingDirectory = FolderPath;
         process.StartInfo.Arguments = command;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
         process.StartInfo.UseShellExecute = false;
 
         _ = process.Start();
-        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-        Task<string> errorTask = process.StandardError.ReadToEndAsync();
         using CancellationTokenRegistration registration = cancellationToken.Register(() =>
         {
             try
@@ -94,11 +94,7 @@ public partial class Main : Form
         });
 
         process.WaitForExit();
-        string output = outputTask.Result;
-        string error = errorTask.Result;
-        if (!string.IsNullOrEmpty(error))
-            output = $"{output}{Environment.NewLine}{error}";
-        return output;
+        return string.Empty;
     }
 
     private void Main_Load(object sender, EventArgs e)
@@ -155,7 +151,9 @@ public partial class Main : Form
             {
                 txtSearchFolder.Text = "";
                 FolderPath = "";
+                _suppressFileSelectionChanged = true;
                 lstFilelist.Items.Clear();
+                _suppressFileSelectionChanged = false;
             }
         }
 
@@ -238,10 +236,11 @@ public partial class Main : Form
 
         _exportCts = new CancellationTokenSource();
         SetExportingState(true);
+
         try
         {
-            IReadOnlyCollection<string> selectedLayers = _layers.ToList();
-            List<string> selectedFiles = _files.ToList();
+            List<string> selectedLayers = [.. _layers];
+            List<string> selectedFiles = [.. _files];
             string selectedLayerFile = _selectedLayerFile;
             CancellationToken token = _exportCts.Token;
 
@@ -261,9 +260,7 @@ public partial class Main : Form
                     }
                 }
             }, token);
-
-            if (token.IsCancellationRequested)
-                throw new OperationCanceledException(token);
+            token.ThrowIfCancellationRequested();
 
             lstDebug.Items.Insert(0, $"Export completed successfully for type {ExportType}.");
             _ = MessageBox.Show(
@@ -285,53 +282,25 @@ public partial class Main : Form
         }
     }
 
-    private void ExportFile(string file, IReadOnlyCollection<string> layers, CancellationToken token)
+    private void ExportFile(string file, List<string> layers, CancellationToken token)
     {
         if (string.IsNullOrEmpty(file)) return;
 
-        bool hasLayers = layers.Count > 0;
+        bool hasSelectedLayers = layers.Count > 0;
         string scriptName;
-
-        if (EveryLayer)
-        {
-            scriptName = ExportType == ExportType.EveryFrame
-                ? "export_every_layer_frames.lua"
-                : "export_sheet_per_layer.lua";
-        }
-        else if (ExportType == ExportType.EveryFrame)
-        {
-            scriptName = hasLayers ? "export_selected_layers.lua" : "export_every_frame.lua";
-        }
-        else
-        {
-            scriptName = hasLayers ? "export_selected_layers.lua" : "export_sprite_sheet.lua";
-        }
-
+        bool isEveryFrame = ExportType == ExportType.EveryFrame;
         Dictionary<string, string> parameters = [];
+        string outPattern;
         string baseName = Path.GetFileNameWithoutExtension(file);
         string scaleFolder = $"{Scale}x";
-        bool isSheet = ExportType == ExportType.SpriteSheet;
-        string frameRangeValue = string.Empty;
 
-        string outPattern;
-        if (!string.IsNullOrEmpty(CustomOutputName))
+        if (isEveryFrame)
         {
-            if (ExportType == ExportType.EveryFrame)
-            {
-                outPattern = EveryLayer
-                    ? $"{CustomOutputName}_{{layer}}_{{frame}}.png"
-                    : $"{CustomOutputName}_{{frame}}.png";
-            }
-            else
-            {
-                outPattern = EveryLayer
-                    ? Path.Combine(CustomOutputName, "{layer}", $"{CustomOutputName}.png")
-                    : $"{CustomOutputName}.png";
-            }
-        }
-        else
-        {
-            if (ExportType == ExportType.EveryFrame)
+            if (!hasSelectedLayers && !EveryLayer) scriptName = "export_every_frame.lua";
+            else if (!hasSelectedLayers && EveryLayer) scriptName = "export_every_frame_every_layer.lua";
+            else scriptName = "export_every_frame_selected_layers.lua";
+
+            if (string.IsNullOrEmpty(CustomOutputName))
             {
                 outPattern = EveryLayer
                     ? Path.Combine(scaleFolder, "{layer}_{frame}.png")
@@ -340,82 +309,79 @@ public partial class Main : Form
             else
             {
                 outPattern = EveryLayer
+                    ? $"{CustomOutputName}_{{layer}}_{{frame}}.png"
+                    : $"{CustomOutputName}_{{frame}}.png";
+            }
+        }
+        else
+        {
+            if (!hasSelectedLayers && !EveryLayer) scriptName = "export_sprite_sheet.lua";
+            else if (!hasSelectedLayers && EveryLayer) scriptName = "export_sprite_sheet_every_layer.lua";
+            else scriptName = "export_sprite_sheet_selected_layers.lua";
+
+            if (string.IsNullOrEmpty(CustomOutputName))
+            {
+                outPattern = EveryLayer
                     ? Path.Combine(scaleFolder, baseName, "{layer}.png")
                     : Path.Combine(scaleFolder, $"{baseName}.png");
             }
-        }
-
-        parameters["out"] = outPattern.Replace("\\", "/");
-
-        if (scriptName == "export_selected_layers.lua")
-            parameters["mode"] = ExportType == ExportType.EveryFrame ? "frames" : "sheet";
-
-        if (EveryLayer || hasLayers)
-        {
-            string layerValue = string.Join("|", layers.Select(layer => layer.Trim().Replace("\\", "/")));
-            if (!string.IsNullOrEmpty(layerValue))
-                parameters["layers"] = layerValue;
-        }
-
-        if (AllLayers && scriptName != "export_selected_layers.lua")
-            parameters["includeHidden"] = "true";
-
-        if (FrameRangeEnabled)
-        {
-            int from = Math.Min(StartFrame, EndFrame);
-            int to = Math.Max(StartFrame, EndFrame);
-            frameRangeValue = $"{from},{to}";
-            if (ExportType == ExportType.EveryFrame)
+            else
             {
-                parameters["fromFrame"] = from.ToString();
-                parameters["toFrame"] = to.ToString();
+                outPattern = EveryLayer
+                    ? Path.Combine(CustomOutputName, "{layer}", $"{CustomOutputName}.png")
+                    : $"{CustomOutputName}.png";
             }
-            if (StartFrame > EndFrame)
-                SafeLog("Frame range values were inverted. Using the corrected range.");
-        }
 
-        if (scriptName is "export_every_frame.lua" or "export_every_layer_frames.lua" or "export_selected_layers.lua")
-            parameters["scale"] = Scale.ToString();
-
-        if (isSheet)
-        {
             string sheetType = Enum.GetName(typeof(SheetExportType), SheetExportType)?.ToLowerInvariant() ?? "packed";
 
             if (SheetExportType == SheetExportType.Rows)
             {
+                // must be inverted for some reason aseprite export correctly
                 sheetType = "columns";
                 parameters["rows"] = SheetSplitCount.ToString();
             }
 
             if (SheetExportType == SheetExportType.Columns)
             {
+                // must be inverted for some reason aseprite export correctly
                 sheetType = "rows";
                 parameters["columns"] = SheetSplitCount.ToString();
             }
 
             parameters["type"] = sheetType;
 
-            if (ExportJson)
-            {
-                string dataPattern = Path.ChangeExtension(outPattern, ".json").Replace("\\", "/");
-                parameters["data"] = dataPattern;
-            }
-
-            parameters["scale"] = Scale.ToString();
+            if (ExportJson) parameters["data"] = Path.ChangeExtension(outPattern, ".json").Replace("\\", "/");
         }
 
-        string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
+        parameters["out"] = outPattern.Replace("\\", "/");
+        parameters["scale"] = Scale.ToString();
+
+        if (FrameRangeEnabled)
+        {
+            parameters["fromFrame"] = Math.Min(StartFrame, EndFrame).ToString();
+            parameters["toFrame"] = Math.Max(StartFrame, EndFrame).ToString();
+            if (StartFrame > EndFrame) SafeLog("Frame range values were inverted. Using the corrected range.");
+        }
+
+        if (EveryLayer || hasSelectedLayers)
+        {
+            string layerValue = string.Join("|", layers.Select(layer => layer.Trim().Replace("\\", "/")));
+            if (!string.IsNullOrEmpty(layerValue)) parameters["layers"] = layerValue;
+        }
+
+        // all layers can be true of false even when specific layers are selected
+        // case specific layers are selected, all layers will be just ignored
+        if (AllLayers) parameters["includeHidden"] = "true";
+
         List<string> args = ["-b"];
-        if (!string.IsNullOrEmpty(frameRangeValue))
-            args.Add($"--frame-range {frameRangeValue}");
         args.Add($"\"{file}\"");
 
         foreach ((string key, string value) in parameters)
             if (!string.IsNullOrEmpty(value)) args.Add($"--script-param {key}=\"{value}\"");
 
+        string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts", scriptName).Replace("\\", "/");
         args.Add($"--script \"{scriptPath}\"");
-        string commandLine = string.Join(" ", args);
-        _ = ProcessCommandCancelable(commandLine, token);
+        _ = ProcessCommandCancelable(string.Join(" ", args), token);
 
         SafeLog($"Exported {file}.");
     }
@@ -428,7 +394,9 @@ public partial class Main : Form
         FolderBrowserDialog openFolder = new();
         if (openFolder.ShowDialog() == DialogResult.OK)
         {
+            _suppressFileSelectionChanged = true;
             lstFilelist.Items.Clear();
+            _suppressFileSelectionChanged = false;
             txtSearchFolder.Text = openFolder.SelectedPath;
             UpdateForm();
         }
@@ -527,7 +495,12 @@ public partial class Main : Form
 
     private void BtnResetOutput_Click(object sender, EventArgs e) => lstDebug.Items.Clear();
 
-    private void BtnResetFileListSelection_Click(object sender, EventArgs e) => lstFilelist.SelectedItems.Clear();
+    private void BtnResetFileListSelection_Click(object sender, EventArgs e)
+    {
+        _suppressFileSelectionChanged = true;
+        lstFilelist.SelectedItems.Clear();
+        _suppressFileSelectionChanged = false;
+    }
 
     private void BtnResetLayerListSelection_Click(object sender, EventArgs e) => lstLayerList.SelectedItems.Clear();
 

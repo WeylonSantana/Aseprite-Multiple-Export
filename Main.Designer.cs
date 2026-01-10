@@ -409,9 +409,11 @@
             // nudFrameRangeMin
             // 
             nudFrameRangeMin.Location = new Point(45, 52);
+            nudFrameRangeMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             nudFrameRangeMin.Name = "nudFrameRangeMin";
             nudFrameRangeMin.Size = new Size(128, 23);
             nudFrameRangeMin.TabIndex = 21;
+            nudFrameRangeMin.Value = new decimal(new int[] { 1, 0, 0, 0 });
             nudFrameRangeMin.ValueChanged += BasicControl_Changed;
             // 
             // lblFrameRangeMax
