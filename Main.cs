@@ -292,8 +292,8 @@ public partial class Main : Form
         if (string.IsNullOrEmpty(file)) return;
 
         bool hasSelectedLayers = _hasManualLayerSelection && layers.Count > 0;
-        string scriptName;
         bool isEveryFrame = ExportType == ExportType.EveryFrame;
+        string scriptName = isEveryFrame ? "export_every_frame.lua" : "export_sprite_sheet.lua";
         Dictionary<string, string> parameters = [];
         string outPattern;
         string baseName = Path.GetFileNameWithoutExtension(file);
@@ -301,8 +301,6 @@ public partial class Main : Form
 
         if (isEveryFrame)
         {
-            scriptName = "export_every_frame.lua";
-
             if (string.IsNullOrEmpty(CustomOutputName))
             {
                 outPattern = EveryLayer
@@ -318,10 +316,6 @@ public partial class Main : Form
         }
         else
         {
-            if (!hasSelectedLayers && !EveryLayer) scriptName = "export_sprite_sheet.lua";
-            else if (!hasSelectedLayers && EveryLayer) scriptName = "export_sprite_sheet_every_layer.lua";
-            else scriptName = "export_sprite_sheet_selected_layers.lua";
-
             if (string.IsNullOrEmpty(CustomOutputName))
             {
                 outPattern = EveryLayer
