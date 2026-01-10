@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Aseprite_Multiple_Export;
 
@@ -33,7 +34,9 @@ public partial class Main : Form
 
     public Main()
     {
+#if DEBUG
         _ = AllocConsole();
+#endif
         InitializeComponent();
         lstDebug.Items.Insert(0, "Starting Aseprite Multiple Exporter...");
         string output = ProcessCommand("--version");
@@ -47,6 +50,18 @@ public partial class Main : Form
         }
 
         lstDebug.Items.Insert(0, output);
+    }
+
+    private void EmitProcessOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return;
+        foreach (string line in output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries))
+        {
+            SafeLog(line);
+#if DEBUG
+            Console.WriteLine(line);
+#endif
+        }
     }
 
     private string ProcessCommand(string command)
@@ -67,6 +82,7 @@ public partial class Main : Form
         string error = errorTask.Result;
         if (!string.IsNullOrEmpty(error))
             output = $"{output}{Environment.NewLine}{error}";
+        EmitProcessOutput(output);
         return output;
     }
 
@@ -74,12 +90,16 @@ public partial class Main : Form
     {
         using Process process = new();
         process.StartInfo.FileName = "Aseprite.exe";
-        process.StartInfo.CreateNoWindow = false;
+        process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = FolderPath;
         process.StartInfo.Arguments = command;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
         process.StartInfo.UseShellExecute = false;
 
         _ = process.Start();
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        Task<string> errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
         using CancellationTokenRegistration registration = cancellationToken.Register(() =>
         {
             try
@@ -94,7 +114,12 @@ public partial class Main : Form
         });
 
         process.WaitForExit();
-        return string.Empty;
+        string output = outputTask.Result;
+        string error = errorTask.Result;
+        if (!string.IsNullOrEmpty(error))
+            output = $"{output}{Environment.NewLine}{error}";
+        EmitProcessOutput(output);
+        return output;
     }
 
     private void Main_Load(object sender, EventArgs e)
